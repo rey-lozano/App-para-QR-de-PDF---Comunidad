@@ -187,70 +187,20 @@
       h1{font-size:28px;}
     }
 
-    /* Ad Banner Styles */
-    .ad-banner {
-      position: fixed; z-index: 9999;
-      background: var(--glass-bg); border: 1px solid var(--glass-border);
-      border-radius: 12px; padding: 8px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.5); backdrop-filter: blur(16px);
-      transition: opacity 0.6s ease, transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-      opacity: 0;
-      pointer-events: none;
-      transform: translateY(20px);
-    }
-    .ad-banner.show {
-      opacity: 1;
-      pointer-events: auto;
-      transform: translateY(0);
-    }
-    .ad-banner .close-ad {
-      position: absolute; top: -10px; right: -10px;
-      background: var(--accent); color: white; border: none;
-      border-radius: 50%; width: 24px; height: 24px;
-      font-size: 16px; line-height: 1; cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.3); padding: 0; z-index: 2;
-    }
-    .ad-banner .close-ad:hover { background: var(--accent2); }
-    .ad-banner a { display: block; line-height: 0; }
-    .ad-banner .ad-image { 
-      width: 100%; height: auto; max-height: 85vh; object-fit: contain; 
-      border-radius: 8px; display: block; min-height: 50px; 
-      background: rgba(255,255,255,0.05);
-      transition: opacity 0.5s ease-in-out, transform 0.3s ease;
-    }
-    .ad-banner a:hover .ad-image {
-      transform: scale(1.05);
-    }
-    .ad-banner .ad-image.fade-out { opacity: 0.1; }
-
-    @media (min-width: 961px) {
-      .ad-banner { top: 90px; right: 30px; width: 340px; }
-      .ad-banner .close-ad { display: none !important; }
-    }
-    @media (max-width: 960px) {
-      .ad-banner { bottom: 20px; left: 0; right: 0; margin: 0 auto; width: 90%; max-width: 400px; }
-    }
-
     @keyframes bottomCardsFadeIn {
       from { opacity: 0; transform: translateY(20px); }
       to { opacity: 1; transform: translateY(0); }
     }
-    /* Extra Links under Canvas */
+    /* Bottom Banners (Mascots) */
     .bottom-cards {
-      display: none; 
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+      margin-top: 24px;
+      flex: 1;
+      animation: bottomCardsFadeIn 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
     }
-    @media (min-width: 961px) {
-      .bottom-cards { 
-        display: grid !important; 
-        grid-template-columns: repeat(3, 1fr);
-        gap: 16px;
-        margin-top: 24px;
-        flex: 1;
-        animation: bottomCardsFadeIn 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-      }
-    }
-    .bottom-cards a {
+    .bottom-cards .card-item {
       display: flex;
       align-items: center;
       justify-content: center;
@@ -261,11 +211,6 @@
       border: 1px solid var(--glass-border);
       background: rgba(255, 255, 255, 0.05);
       box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
-    }
-    .bottom-cards a:hover {
-      transform: scale(1.05);
-      box-shadow: 0 8px 25px rgba(95,141,255,0.3);
     }
     .bottom-cards img {
       display: block;
@@ -275,6 +220,8 @@
       object-position: center;
       transform: scale(1.2);
     }
+
+
 
     /* Format selector */
     .format-selector {
@@ -496,31 +443,21 @@
         </div>
 
         <div class="bottom-cards" id="bottomCards">
-          <a href="https://naturkin.com/coronasystem" target="_blank" rel="noopener noreferrer" title="Visitar Naturkin">
-            <img src="img/kin.webp" alt="Plataforma Naturkin - Integración Corona System" />
-          </a>
-          <a href="https://coronasystem.viajaya.travel" target="_blank" rel="noopener noreferrer" title="Visitar Viaja Ya">
-            <img src="img/pin.webp" alt="Viaja Ya - Soluciones de viaje Corona System" />
-          </a>
-          <a href="https://emprenya.com/coronasystem/unete" target="_blank" rel="noopener noreferrer" title="Unirse a EmpreYA">
-            <img src="img/tommy.webp" alt="EmpreYA - Emprendimiento y formación Corona System" />
-          </a>
+          <div class="card-item">
+            <img src="img/kin.webp" alt="Plataforma Naturkin" />
+          </div>
+          <div class="card-item">
+            <img src="img/pin.webp" alt="Viaja Ya" />
+          </div>
+          <div class="card-item">
+            <img src="img/tommy.webp" alt="EmpreYA" />
+          </div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Banner Publicitario -->
-  <div id="adBanner" class="ad-banner">
-    <button id="closeAdBanner" class="close-ad" aria-label="Cerrar anuncio">&times;</button>
-    <a href="https://linktr.ee/Club_empreYA" target="_blank" rel="noopener noreferrer">
-      <picture>
-        <source id="adSourceMovil" media="(max-width: 960px)" srcset="img/banner-movil.webp">
-        <source id="adSourcePc" media="(min-width: 961px)" srcset="img/banner-pc.webp">
-        <img id="adImage" src="img/banner-pc.webp" alt="Visita Club empreYA" class="ad-image" />
-      </picture>
-    </a>
-  </div>
+
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script>if (window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
@@ -1237,54 +1174,7 @@
 
     refreshContentModeUI();
 
-    const adBanner = $('adBanner');
-    const closeAdBanner = $('closeAdBanner');
-    const adSourceMovil = $('adSourceMovil');
-    const adSourcePc = $('adSourcePc');
-    const adImage = $('adImage');
 
-    const bannersPc = ['img/banner-pc.webp', 'img/banner-pc01.webp', 'img/banner-pc02.webp'];
-    const bannersMovil = ['img/banner-movil.webp', 'img/banner-movil01.webp', 'img/banner-movil02.webp'];
-    let currentBannerIdx = 0;
-    let bannerInterval;
-
-    function startBannerRotation() {
-      if (bannerInterval) clearInterval(bannerInterval);
-      bannerInterval = setInterval(() => {
-        adImage.classList.add('fade-out');
-        setTimeout(() => {
-          currentBannerIdx = (currentBannerIdx + 1) % bannersPc.length;
-          adSourcePc.srcset = bannersPc[currentBannerIdx];
-          adSourceMovil.srcset = bannersMovil[currentBannerIdx];
-          adImage.src = bannersPc[currentBannerIdx];
-          adImage.classList.remove('fade-out');
-        }, 500);
-      }, 10000);
-    }
-
-    setTimeout(() => {
-      if (adBanner && adBanner.style.display !== 'none') {
-        adBanner.classList.add('show');
-        startBannerRotation();
-      }
-    }, 2000);
-
-    closeAdBanner.addEventListener('click', () => {
-      adBanner.style.display = 'none';
-      adBanner.classList.remove('show');
-      if (bannerInterval) clearInterval(bannerInterval);
-      bannerInterval = null;
-    });
-
-    const mql = window.matchMedia('(min-width: 961px)');
-    mql.addEventListener('change', (e) => {
-      if (e.matches) {
-        // Return to PC layout -> restore banner immediately
-        adBanner.style.display = '';
-        adBanner.classList.add('show');
-        startBannerRotation();
-      }
-    });
 
     // Tutorial Modal
     const tutorialModal = $('tutorialModal');
