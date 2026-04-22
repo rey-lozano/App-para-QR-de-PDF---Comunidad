@@ -1,0 +1,1321 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Integrador QR | Inserta Códigos QR en PDF, JPG y PNG Online y Gratis</title>
+  <meta name="description" content="La herramienta definitiva para insertar códigos QR en tus documentos PDF, imágenes JPG y PNG de forma rápida, gratuita y con alta calidad. Ideal para flyers, tarjetas y presentaciones." />
+  <meta name="keywords" content="insertar qr en pdf, poner qr en imagen, generador qr pdf online, qr en jpg, qr en png, herramienta qr gratis" />
+  <link rel="canonical" href="https://coronasystem.com/integrador-qr" />
+
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://coronasystem.com/integrador-qr" />
+  <meta property="og:title" content="Integrador QR | Inserta Códigos QR en PDF e Imágenes" />
+  <meta property="og:description" content="Herramienta gratuita para incrustar códigos QR en documentos y fotos con calidad profesional." />
+  <meta property="og:image" content="https://coronasystem.com/integrador-qr/img/og-image.jpg" />
+
+  <!-- Twitter -->
+  <meta property="twitter:card" content="summary_large_image" />
+  <meta property="twitter:url" content="https://coronasystem.com/integrador-qr" />
+  <meta property="twitter:title" content="Integrador QR | Inserta Códigos QR en PDF e Imágenes" />
+  <meta property="twitter:description" content="Herramienta gratuita para incrustar códigos QR en documentos y fotos con calidad profesional." />
+  <meta property="twitter:image" content="https://coronasystem.com/integrador-qr/img/og-image.jpg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#081225; --text:#e9eefc; --muted:#a8b4d6; --accent:#5f8dff; --accent2:#7da5ff;
+      --border:rgba(255,255,255,.12);
+      --glass-bg: rgba(255, 255, 255, 0.03);
+      --glass-border: rgba(255, 255, 255, 0.08);
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; font-family:'Inter',system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      background: radial-gradient(circle at top right, #102a67 0%, var(--bg) 40%, #040913 100%);
+      color:var(--text); min-height:100vh;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    /* Subtle background glow effect */
+    body::before {
+      content: ''; position: fixed; top: -20%; left: -10%; width: 50vw; height: 50vh;
+      background: radial-gradient(circle, rgba(95,141,255,0.15) 0%, transparent 70%);
+      filter: blur(100px); z-index: -1; pointer-events: none;
+    }
+    .wrap{max-width:1200px; margin:0 auto; padding:20px 24px}
+    h1{
+      margin:0 0 8px; font-size:34px; font-weight:700; letter-spacing:-0.5px;
+      background: linear-gradient(135deg, #ffffff 0%, #a8b4d6 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      text-shadow: 0 4px 20px rgba(95,141,255,0.2);
+      text-align: center;
+    }
+    .sub{color:var(--muted); margin-bottom:28px; line-height:1.6; font-size:16px}
+    .grid{display:grid; grid-template-columns:380px 1fr; gap:28px; align-items:stretch}
+    .card{
+      background: linear-gradient(180deg, var(--glass-bg), rgba(255,255,255,0.01));
+      border: 1px solid var(--glass-border); border-radius:24px; padding:24px;
+      box-shadow: 0 24px 80px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,0.1);
+      backdrop-filter: blur(16px);
+    }
+    .grid > .card:nth-child(2) {
+      display: flex;
+      flex-direction: column;
+    }
+    .field{margin-bottom:18px}
+    .field label{display:block; margin-bottom:10px; font-size:14px; color:#dbe4ff; font-weight:600; letter-spacing:0.3px}
+    input, select{
+      width:100%; background:rgba(0,0,0,0.2); color:var(--text); border:1px solid var(--glass-border);
+      border-radius:14px; padding:14px 16px; font-size:15px; outline:none; font-family:inherit;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+    }
+    input:hover, select:hover {
+      border-color: rgba(255,255,255,0.2);
+      background:rgba(0,0,0,0.25);
+    }
+    input:focus, select:focus {
+      border-color: var(--accent);
+      background: rgba(11, 21, 48, 0.8);
+      box-shadow: 0 0 0 4px rgba(95,141,255,0.15), inset 0 2px 4px rgba(0,0,0,0.2);
+    }
+    input[type="file"]::file-selector-button {
+      background: var(--glass-bg); border: 1px solid var(--glass-border);
+      color: #fff; border-radius: 8px; padding: 6px 12px; margin-right: 12px;
+      cursor: pointer; transition: all 0.2s ease; font-weight:500;
+    }
+    input[type="file"]::file-selector-button:hover { background: rgba(255,255,255,0.1); }
+    .row{display:grid; grid-template-columns:1fr 1fr; gap:16px; align-items:end}
+    .row.row-top{grid-template-columns:1.3fr .7fr; margin-bottom:18px}
+    .field-symmetric{max-width:100%}
+    .field-symmetric input{width:100%}
+    .row .field{display:flex; flex-direction:column; margin-bottom:0}
+    .row .field label{min-height:38px; display:flex; align-items:flex-end}
+    button, .action-link{
+      appearance:none; border:none; border-radius:14px; padding:15px 20px; font-size:16px;
+      font-weight:600; letter-spacing:0.2px; cursor:pointer; text-decoration:none; display:flex;
+      align-items:center; justify-content:center; text-align:center; width:100%;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .btn-primary{
+      background:linear-gradient(180deg, var(--accent2), var(--accent)); color:white;
+      box-shadow: 0 4px 14px rgba(95,141,255,0.3), inset 0 1px 0 rgba(255,255,255,0.2);
+      text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+    }
+    .btn-primary:not(:disabled):hover{
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(95,141,255,0.4), inset 0 1px 0 rgba(255,255,255,0.3);
+      filter: brightness(1.1);
+    }
+    .btn-primary:not(:disabled):active{ transform: translateY(0); box-shadow: 0 2px 8px rgba(95,141,255,0.3); }
+    
+    .btn-secondary{
+      background:rgba(255,255,255,0.06); color:white; border:1px solid var(--glass-border);
+      backdrop-filter: blur(4px);
+    }
+    .btn-secondary:not(:disabled):hover{ background:rgba(255,255,255,0.1); border-color:rgba(255,255,255,0.2); transform: translateY(-1px); }
+    .btn-secondary:not(:disabled):active{ transform: translateY(0); }
+    
+    .btn-ghost{background:transparent; color:#dbe4ff; border:1px solid transparent}
+    .btn-ghost:not(:disabled):hover{background:rgba(255,255,255,0.06); border-color:var(--glass-border); color:white}
+    
+    button:disabled, .action-link.disabled{
+      opacity:0.5; cursor:not-allowed; filter: grayscale(0.5);
+      box-shadow: none !important; transform: none !important;
+    }
+    .help,.diag{
+      border-radius:14px; padding:16px; font-size:14px; line-height:1.6; margin-top:16px;
+      backdrop-filter: blur(4px);
+    }
+    .help{background:rgba(95,141,255,.05); border:1px solid rgba(95,141,255,.15); color:#dfe8ff}
+    .diag{background:rgba(0,0,0,.2); border:1px solid var(--glass-border); color:#a8b4d6; font-family: ui-monospace, monospace; font-size: 13px;}
+    .status{
+      margin-top:16px; margin-bottom:28px; padding:16px; border-radius:14px; border:1px solid var(--glass-border);
+      background:rgba(16, 26, 51, 0.6); color:#dfe7ff; line-height:1.5; display:none; white-space:pre-wrap; word-break:break-word; text-align:center;
+      backdrop-filter: blur(4px); box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+    }
+    .status.error{display:block; border-color:rgba(255,100,100,.3); background:rgba(98,28,36,.4); color:#ffd5d9}
+    .status.ok{display:block; border-color:rgba(116,233,142,.3); background:rgba(20,68,32,.4); color:#d9ffe3}
+    .result-box{
+      margin-top:16px; display:none; background:rgba(0,0,0,.2); border:1px solid var(--glass-border);
+      border-radius:16px; padding:20px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+    .result-box.show{display:block; animation: fadeInDown 0.4s cubic-bezier(0.16, 1, 0.3, 1);}
+    @keyframes fadeInDown {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .result-actions{display:grid; gap:12px; margin-top:16px}
+    .action-link.primary{
+      background:linear-gradient(180deg, var(--accent2), var(--accent)); color:white;
+      box-shadow: 0 4px 14px rgba(95,141,255,0.3), inset 0 1px 0 rgba(255,255,255,0.2);
+    }
+    .action-link.primary:hover{ transform: translateY(-2px); box-shadow: 0 6px 20px rgba(95,141,255,0.4); filter: brightness(1.1); }
+    .action-link.secondary{background:rgba(255,255,255,0.06); color:white; border:1px solid var(--glass-border);}
+    .action-link.secondary:hover{background:rgba(255,255,255,0.1); transform: translateY(-1px);}
+    .toolbar{display:flex; flex-wrap:wrap; gap:12px; align-items:center; justify-content:space-between; margin-bottom:20px; padding:0 4px;}
+    .toolbar-left,.toolbar-right{display:flex; gap:12px; align-items:center; flex-wrap:wrap}
+    .page-info{font-weight:600; color:#dfe8ff; font-size:15px; padding: 0 8px;}
+    .canvas-wrap{
+      position:relative; width:100%; min-height:250px; border-radius:20px; overflow:auto;
+      background-color: rgba(0,0,0,0.3);
+      background-image: radial-gradient(rgba(255,255,255,0.05) 1px, transparent 1px);
+      background-size: 20px 20px;
+      border:1px solid var(--glass-border); display:flex;
+      justify-content:center; align-items:flex-start; padding:24px;
+      touch-action: none;
+      box-shadow: inset 0 4px 20px rgba(0,0,0,0.4);
+    }
+    .canvas-stack{
+      position:relative; display:inline-block; 
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.1), 0 24px 60px rgba(0,0,0,0.5), 0 12px 24px rgba(0,0,0,0.3);
+      border-radius:4px; overflow:hidden; line-height:0;
+      transition: transform 0.2s ease;
+    }
+    canvas{display:block; max-width:100%; height:auto}
+    #overlayCanvas{position:absolute; left:0; top:0; z-index:2; cursor:crosshair; touch-action:none}
+    .mobile-tools{display:grid; gap:12px; margin-top:20px}
+    .mobile-note{font-size:13.5px; color:var(--muted); line-height:1.5; margin-top:12px; text-align:center;}
+    .small{font-size:13.5px; color:var(--muted); line-height:1.5}
+    .hidden{display:none !important}
+    @media (max-width:960px){ 
+      .grid{grid-template-columns:1fr; gap:20px;} 
+      .wrap{padding:20px 16px}
+      h1{font-size:28px;}
+    }
+
+    /* Ad Banner Styles */
+    .ad-banner {
+      position: fixed; z-index: 9999;
+      background: var(--glass-bg); border: 1px solid var(--glass-border);
+      border-radius: 12px; padding: 8px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5); backdrop-filter: blur(16px);
+      transition: opacity 0.6s ease, transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(20px);
+    }
+    .ad-banner.show {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(0);
+    }
+    .ad-banner .close-ad {
+      position: absolute; top: -10px; right: -10px;
+      background: var(--accent); color: white; border: none;
+      border-radius: 50%; width: 24px; height: 24px;
+      font-size: 16px; line-height: 1; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3); padding: 0; z-index: 2;
+    }
+    .ad-banner .close-ad:hover { background: var(--accent2); }
+    .ad-banner a { display: block; line-height: 0; }
+    .ad-banner .ad-image { 
+      width: 100%; height: auto; max-height: 85vh; object-fit: contain; 
+      border-radius: 8px; display: block; min-height: 50px; 
+      background: rgba(255,255,255,0.05);
+      transition: opacity 0.5s ease-in-out, transform 0.3s ease;
+    }
+    .ad-banner a:hover .ad-image {
+      transform: scale(1.05);
+    }
+    .ad-banner .ad-image.fade-out { opacity: 0.1; }
+
+    @media (min-width: 961px) {
+      .ad-banner { top: 90px; right: 30px; width: 340px; }
+      .ad-banner .close-ad { display: none !important; }
+    }
+    @media (max-width: 960px) {
+      .ad-banner { bottom: 20px; left: 0; right: 0; margin: 0 auto; width: 90%; max-width: 400px; }
+    }
+
+    @keyframes bottomCardsFadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    /* Extra Links under Canvas */
+    .bottom-cards {
+      display: none; 
+    }
+    @media (min-width: 961px) {
+      .bottom-cards { 
+        display: grid !important; 
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+        margin-top: 24px;
+        flex: 1;
+        animation: bottomCardsFadeIn 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+      }
+    }
+    .bottom-cards a {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      min-height: 160px;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid var(--glass-border);
+      background: rgba(255, 255, 255, 0.05);
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .bottom-cards a:hover {
+      transform: scale(1.05);
+      box-shadow: 0 8px 25px rgba(95,141,255,0.3);
+    }
+    .bottom-cards img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      object-position: center;
+      transform: scale(1.2);
+    }
+
+    /* Format selector */
+    .format-selector {
+      display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;
+    }
+    .fmt-btn {
+      flex: 1; min-width: 60px;
+      padding: 8px 10px; border-radius: 10px; font-size: 13px; font-weight: 600;
+      border: 1px solid var(--glass-border); background: rgba(255,255,255,0.04);
+      color: var(--muted); cursor: pointer; transition: all 0.2s ease;
+    }
+    .fmt-btn:hover { border-color: var(--accent); color: #fff; }
+    .fmt-btn.active {
+      background: linear-gradient(135deg, rgba(95,141,255,0.25), rgba(125,165,255,0.15));
+      border-color: var(--accent); color: #fff;
+      box-shadow: 0 0 12px rgba(95,141,255,0.2);
+    }
+
+    /* Tutorial Modal */
+    .tutorial-btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      margin: 0 auto 20px; padding: 10px 22px;
+      background: linear-gradient(135deg, rgba(95,141,255,0.15), rgba(125,165,255,0.1));
+      border: 1px solid rgba(95,141,255,0.4); border-radius: 50px;
+      color: #a8c4ff; font-size: 14px; font-weight: 600; cursor: pointer;
+      transition: all 0.25s ease; text-decoration: none;
+      backdrop-filter: blur(8px);
+      letter-spacing: 0.3px;
+    }
+    .tutorial-btn:hover {
+      background: linear-gradient(135deg, rgba(95,141,255,0.3), rgba(125,165,255,0.2));
+      border-color: rgba(95,141,255,0.8);
+      color: #fff;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(95,141,255,0.25);
+    }
+    .tutorial-btn svg { flex-shrink: 0; }
+    .tutorial-header-wrap {
+      display: flex; flex-direction: column; align-items: center; gap: 4px; margin-bottom: 8px;
+    }
+    /* Modal Overlay */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0; z-index: 99999;
+      background: rgba(4, 9, 19, 0.85);
+      backdrop-filter: blur(10px);
+      align-items: center; justify-content: center;
+    }
+    .modal-overlay.open { display: flex; animation: modalFadeIn 0.3s ease forwards; }
+    @keyframes modalFadeIn {
+      from { opacity: 0; } to { opacity: 1; }
+    }
+    .modal-box {
+      position: relative; width: 90%; max-width: 860px;
+      background: linear-gradient(180deg, rgba(14,28,64,0.98), rgba(8,18,37,0.98));
+      border: 1px solid rgba(95,141,255,0.25);
+      border-radius: 20px; padding: 24px;
+      box-shadow: 0 40px 100px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.05) inset;
+      animation: modalSlideUp 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    }
+    @keyframes modalSlideUp {
+      from { opacity: 0; transform: translateY(30px) scale(0.97); }
+      to   { opacity: 1; transform: translateY(0)   scale(1); }
+    }
+    .modal-header {
+      display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;
+    }
+    .modal-title {
+      font-size: 17px; font-weight: 700; color: #dfe8ff;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .modal-close {
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+      color: #a8b4d6; border-radius: 50%; width: 34px; height: 34px;
+      font-size: 20px; line-height: 1; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.2s ease;
+    }
+    .modal-close:hover { background: rgba(255,100,100,0.2); border-color: rgba(255,100,100,0.4); color: #fff; }
+    .modal-video-wrap {
+      border-radius: 12px; overflow: hidden; line-height: 0;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+    }
+    .modal-video-wrap wistia-player { display: block; width: 100%; }
+  </style>
+  <script src="https://fast.wistia.com/player.js" async></script>
+  <script src="https://fast.wistia.com/embed/ex5onxdzmn.js" async type="module"></script>
+  <style>wistia-player[media-id='ex5onxdzmn']:not(:defined) { background: center / contain no-repeat url('https://fast.wistia.com/embed/medias/ex5onxdzmn/swatch'); display: block; filter: blur(5px); padding-top:56.25%; }</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="tutorial-header-wrap">
+      <h1>Crea e inserta tus códigos QR en cualquier documento</h1>
+      <button class="tutorial-btn" id="openTutorial">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M8 5v14l11-7z"/>
+        </svg>
+        Ver Tutorial
+      </button>
+    </div>
+
+    <div id="status" class="status" aria-live="polite"></div>
+
+    <!-- Tutorial Modal -->
+    <div class="modal-overlay" id="tutorialModal">
+      <div class="modal-box">
+        <div class="modal-header">
+          <span class="modal-title">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="#5f8dff"><path d="M8 5v14l11-7z"/></svg>
+            Tutorial: Cómo insertar un QR en tu documento
+          </span>
+          <button class="modal-close" id="closeTutorial" aria-label="Cerrar">&times;</button>
+        </div>
+        <div class="modal-video-wrap">
+          <wistia-player id="tutorialPlayer" media-id="ex5onxdzmn" aspect="1.7777777777777777"></wistia-player>
+        </div>
+      </div>
+    </div>
+    
+    <div class="grid">
+      <div class="card">
+        <div class="field">
+          <label for="pdfSource">Selecciona un archivo o sube el tuyo</label>
+          <select id="pdfSource">
+            <option value="custom" selected>Subir mi propio archivo...</option>
+            <optgroup label="emprenYA">
+              <option value="pdf/TRÍPTICO Original.pdf">TRÍPTICO Original</option>
+              <option value="pdf/TRÍPTICO QR Básico.pdf">TRÍPTICO QR Básico</option>
+              <option value="pdf/TRÍPTICO QR y plan.pdf">TRÍPTICO QR y plan</option>
+              <option value="pdf/TRÍPTICO Teléfono y Plan.pdf">TRÍPTICO Teléfono y Plan</option>
+            </optgroup>
+          </select>
+        </div>
+        <div id="predefinedActions" style="display:none; margin-top:-8px; margin-bottom:18px;">
+           <a id="downloadOriginalBtn" class="action-link secondary" href="#" download style="padding: 10px 15px; font-size: 14px;">Descargar este PDF original sin modificar</a>
+        </div>
+        <div class="field" id="customPdfWrapper">
+          <input id="pdfFile" type="file" accept="application/pdf,image/jpeg,image/png" />
+          <div style="margin-top:6px; font-size:12px; color:var(--muted);">Formatos permitidos: PDF, JPG, PNG</div>
+        </div>
+        <div class="row row-top">
+          <div class="field">
+            <label for="contentType">Tipo de contenido</label>
+            <select id="contentType">
+              <option value="qr" selected>QR con link o texto</option>
+              <option value="phone">Número de teléfono</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="phoneNumber">Teléfono</label>
+            <input id="phoneNumber" type="tel" placeholder="+34 600 123 456" />
+          </div>
+        </div>
+
+        <div class="field field-symmetric" style="margin-top:6px;">
+          <label for="qrLink" id="qrLabel">Link o texto para el QR</label>
+          <input id="qrLink" type="text" placeholder="https://tusitio.com/registro" />
+        </div>
+        <div class="field field-symmetric">
+          <label for="qrMargin">Margen interno del QR</label>
+          <input id="qrMargin" type="number" min="0" max="30" value="4" />
+        </div>
+
+        <div class="diag">
+          <div><strong>Selección actual:</strong> <span id="selText">Haz una selección sobre el PDF.</span></div>
+          <div style="margin-top:8px"><strong>Diagnóstico:</strong> <span id="diagText">Esperando acciones.</span></div>
+        </div>
+
+        <div style="display:grid; gap:10px; margin-top:16px;">
+          <button class="btn-secondary" id="previewBtn" disabled>Actualizar vista previa</button>
+          <button class="btn-primary" id="generateBtn" disabled>Generar archivo final</button>
+          <button class="btn-ghost" id="clearBtn" disabled>Limpiar selección</button>
+        </div>
+
+
+
+
+
+        <div id="resultBox" class="result-box">
+          <div style="font-weight:700;" id="resultTitle">Archivo generado</div>
+          <div class="small">Elige el formato de descarga:</div>
+          <div class="format-selector" style="margin-top:10px;">
+            <button class="fmt-btn active" data-fmt="pdf">PDF</button>
+            <button class="fmt-btn" data-fmt="jpg">JPG</button>
+            <button class="fmt-btn" data-fmt="png">PNG</button>
+          </div>
+          <div class="result-actions">
+            <a id="downloadLink" class="action-link primary" href="#" download>Descargar archivo</a>
+            <a id="openLink" class="action-link secondary" href="#" target="_blank" rel="noopener">Abrir en pestaña</a>
+            <button id="savePickerBtn" class="btn-secondary" style="display:none;">Guardar con selector del sistema</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="toolbar">
+          <div class="toolbar-left">
+            <button class="btn-ghost" id="prevPage" disabled style="width:auto;">◀ Página anterior</button>
+            <button class="btn-ghost" id="nextPage" disabled style="width:auto;">Página siguiente ▶</button>
+            <span class="page-info" id="pageInfo">Sin archivo cargado</span>
+          </div>
+          <div class="toolbar-right small">Selecciona con mouse o con el dedo</div>
+        </div>
+
+        <div class="canvas-wrap" id="canvasWrap">
+          <div class="canvas-stack" id="canvasStack" style="display:none;">
+            <canvas id="pdfCanvas"></canvas>
+            <canvas id="overlayCanvas"></canvas>
+          </div>
+          <div id="emptyState" class="small" style="padding:26px; text-align:center; max-width:540px;">
+            Carga un archivo (PDF, JPG o PNG) para verlo aquí. Después elige la página y dibuja el área donde quieres incrustar el QR.
+          </div>
+        </div>
+
+        <div class="mobile-tools">
+          <button class="btn-secondary" id="fitBtn" type="button">Ajustar vista</button>
+        </div>
+        <div class="mobile-note">
+          En móvil: toca y arrastra sobre el documento para seleccionar el área. Si necesitas más precisión, usa el zoom del navegador y luego pulsa “Ajustar vista”.
+        </div>
+
+        <div class="bottom-cards" id="bottomCards">
+          <a href="https://naturkin.com/coronasystem" target="_blank" rel="noopener noreferrer" title="Visitar Naturkin">
+            <img src="img/kin.webp" alt="Plataforma Naturkin - Integración Corona System" />
+          </a>
+          <a href="https://coronasystem.viajaya.travel" target="_blank" rel="noopener noreferrer" title="Visitar Viaja Ya">
+            <img src="img/pin.webp" alt="Viaja Ya - Soluciones de viaje Corona System" />
+          </a>
+          <a href="https://emprenya.com/coronasystem/unete" target="_blank" rel="noopener noreferrer" title="Unirse a EmpreYA">
+            <img src="img/tommy.webp" alt="EmpreYA - Emprendimiento y formación Corona System" />
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Banner Publicitario -->
+  <div id="adBanner" class="ad-banner">
+    <button id="closeAdBanner" class="close-ad" aria-label="Cerrar anuncio">&times;</button>
+    <a href="https://linktr.ee/Club_empreYA" target="_blank" rel="noopener noreferrer">
+      <picture>
+        <source id="adSourceMovil" media="(max-width: 960px)" srcset="img/banner-movil.webp">
+        <source id="adSourcePc" media="(min-width: 961px)" srcset="img/banner-pc.webp">
+        <img id="adImage" src="img/banner-pc.webp" alt="Visita Club empreYA" class="ad-image" />
+      </picture>
+    </a>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>if (window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
+  <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const state = {
+      file: null,
+      pdfBytesForView: null,
+      pdfBytesForEdit: null,
+      pdfjsDoc: null,
+      currentPage: 1,
+      totalPages: 0,
+      rendered: { width: 0, height: 0 },
+      selection: null,
+      qrImage: null,
+      outputBlob: null,
+      outputUrl: null
+    };
+
+    const pdfSource = $('pdfSource'), customPdfWrapper = $('customPdfWrapper'), pdfFile = $('pdfFile'), qrLink = $('qrLink'), qrMargin = $('qrMargin'), contentType = $('contentType'), phoneNumber = $('phoneNumber'), qrLabel = $('qrLabel');
+    const previewBtn = $('previewBtn'), generateBtn = $('generateBtn'), clearBtn = $('clearBtn');
+    const prevPage = $('prevPage'), nextPage = $('nextPage'), pageInfo = $('pageInfo');
+    const statusBox = $('status'), pdfCanvas = $('pdfCanvas'), overlayCanvas = $('overlayCanvas');
+    const pdfCtx = pdfCanvas.getContext('2d'), overlayCtx = overlayCanvas.getContext('2d');
+    const canvasStack = $('canvasStack'), emptyState = $('emptyState');
+    const resultBox = $('resultBox'), downloadLink = $('downloadLink'), openLink = $('openLink'), savePickerBtn = $('savePickerBtn'), fitBtn = $('fitBtn');
+
+    function setDiag(msg){ $('diagText').textContent = msg; }
+    function setStatus(msg, type='ok'){ statusBox.textContent = msg; statusBox.className = 'status ' + type; }
+    function clearStatus(){ statusBox.textContent = ''; statusBox.className = 'status'; }
+    function cleanupOutput(){
+      resultBox.classList.remove('show');
+      state.outputBlob = null;
+      if (state.outputUrl) {
+        try { URL.revokeObjectURL(state.outputUrl); } catch(e) {}
+        state.outputUrl = null;
+      }
+      downloadLink.removeAttribute('href');
+      openLink.removeAttribute('href');
+    }
+    function getOutputName(){
+      const baseName = (state.file?.name || 'documento').replace(/\.pdf$/i,'');
+      return `${baseName}_con_QR.pdf`;
+    }
+
+    function getSelectedMode(){
+      return contentType.value;
+    }
+
+    function getPhoneDisplayValue(raw){
+      const cleaned = String(raw || '').trim();
+      return cleaned;
+    }
+
+    function refreshContentModeUI(){
+      const phoneMode = getSelectedMode() === 'phone';
+      phoneNumber.parentElement.classList.toggle('hidden', !phoneMode);
+      qrLabel.textContent = phoneMode ? 'Texto opcional adicional' : 'Link o texto para el QR';
+      qrLink.placeholder = phoneMode ? 'Ej: Llámanos ahora' : 'https://tusitio.com/registro';
+      qrMargin.disabled = phoneMode;
+      if (phoneMode) {
+        qrMargin.style.opacity = '0.6';
+      } else {
+        qrMargin.style.opacity = '1';
+      }
+      redrawOverlay();
+      updateButtons();
+    }
+
+    function fitPreviewFont(text, maxWidth, startSize, minSize, weight='700'){
+      let size = startSize;
+      while (size > minSize) {
+        overlayCtx.font = `${weight} ${size}px Inter, Arial, sans-serif`;
+        if (overlayCtx.measureText(text).width <= maxWidth) return size;
+        size -= 1;
+      }
+      return minSize;
+    }
+
+    function drawPhonePreview(rect){
+      const phone = getPhoneDisplayValue(phoneNumber.value);
+      if (!phone) return;
+      overlayCtx.save();
+      overlayCtx.fillStyle = '#ffffff';
+      overlayCtx.fillRect(rect.x, rect.y, rect.w, rect.h);
+
+      const cx = rect.x + rect.w / 2;
+      const extra = qrLink.value.trim();
+      const availableWidth = rect.w * 0.86;
+      const color = '#0b1530';
+
+      overlayCtx.fillStyle = color;
+      overlayCtx.textAlign = 'center';
+      overlayCtx.textBaseline = 'middle';
+
+      if (extra) {
+        const smallStart = Math.max(11, Math.min(rect.w, rect.h) * 0.20);
+        const phoneStart = Math.max(18, Math.min(rect.w, rect.h) * 0.34);
+        const small = fitPreviewFont(extra, availableWidth, smallStart, 9, '600');
+        const phoneSize = fitPreviewFont(phone, availableWidth, phoneStart, 14, '700');
+
+        overlayCtx.font = `600 ${small}px Inter, Arial, sans-serif`;
+        overlayCtx.fillText(extra, cx, rect.y + rect.h * 0.28, availableWidth);
+
+        overlayCtx.font = `700 ${phoneSize}px Inter, Arial, sans-serif`;
+        overlayCtx.fillText(phone, cx, rect.y + rect.h * 0.72, availableWidth);
+      } else {
+        const phoneStart = Math.max(18, Math.min(rect.w, rect.h) * 0.42);
+        const phoneSize = fitPreviewFont(phone, availableWidth, phoneStart, 14, '700');
+        overlayCtx.font = `700 ${phoneSize}px Inter, Arial, sans-serif`;
+        overlayCtx.fillText(phone, cx, rect.y + rect.h / 2, availableWidth);
+      }
+      overlayCtx.restore();
+    }
+
+    function updateButtons(){
+      const ready = !!state.pdfBytesForView && !!state.pdfjsDoc;
+      const selected = !!state.selection;
+      const hasContent = contentType.value === 'phone' ? !!phoneNumber.value.trim() : !!qrLink.value.trim();
+      previewBtn.disabled = !(ready && selected && hasContent);
+      generateBtn.disabled = !(ready && selected && hasContent);
+      clearBtn.disabled = !selected;
+      prevPage.disabled = !(ready && state.currentPage > 1);
+      nextPage.disabled = !(ready && state.currentPage < state.totalPages);
+    }
+    function updateSelectionText(){
+      $('selText').textContent = state.selection
+        ? `Página ${state.currentPage} · X ${Math.round(state.selection.x)} · Y ${Math.round(state.selection.y)} · ${Math.round(state.selection.w)} × ${Math.round(state.selection.h)} px`
+        : 'Haz una selección sobre el PDF.';
+    }
+
+    async function loadPdfFromBytes(buffer, fileName){
+      if (!window.pdfjsLib) throw new Error('No cargó PDF.js');
+
+      const bytesA = new Uint8Array(buffer);
+      const bytesB = new Uint8Array(bytesA); // copia independiente
+
+      state.file = { name: fileName };
+      state.pdfBytesForView = bytesA;
+      state.pdfBytesForEdit = bytesB;
+
+      state.pdfjsDoc = await pdfjsLib.getDocument({ data: state.pdfBytesForView.slice() }).promise;
+      state.totalPages = state.pdfjsDoc.numPages;
+      state.currentPage = 1;
+      state.selection = null;
+      state.qrImage = null;
+      cleanupOutput();
+      await renderCurrentPage();
+    }
+
+    async function loadPdfFromFile(file){
+      const type = file.type;
+      if (type === 'application/pdf') {
+        const buffer = await file.arrayBuffer();
+        await loadPdfFromBytes(buffer, file.name);
+      } else if (type === 'image/jpeg' || type === 'image/png') {
+        await loadImageAspdf(file);
+      } else {
+        throw new Error('Formato no soportado. Usa PDF, JPG o PNG.');
+      }
+    }
+
+    async function loadImageAspdf(file) {
+      const { PDFDocument } = PDFLib;
+      const buffer = await file.arrayBuffer();
+      const bytes = new Uint8Array(buffer);
+      const pdfDoc = await PDFDocument.create();
+      let img;
+      if (file.type === 'image/jpeg') {
+        img = await pdfDoc.embedJpg(bytes);
+      } else {
+        img = await pdfDoc.embedPng(bytes);
+      }
+      // Page same size as image (1px = 0.75pt, but use 1:1 for lossless mapping)
+      const page = pdfDoc.addPage([img.width, img.height]);
+      page.drawImage(img, { x: 0, y: 0, width: img.width, height: img.height });
+      const pdfBytes = await pdfDoc.save();
+      // Store original image bytes for high-quality image output
+      state.originalImageBytes = bytes;
+      state.originalImageType = file.type;
+      await loadPdfFromBytes(pdfBytes.buffer, file.name.replace(/\.[^.]+$/, '.pdf'));
+    }
+
+    async function loadPdfFromUrl(url, fileName) {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error('No se pudo descargar el PDF predefinido.');
+      const buffer = await response.arrayBuffer();
+      await loadPdfFromBytes(buffer, fileName);
+    }
+
+    async function renderCurrentPage(){
+      const page = await state.pdfjsDoc.getPage(state.currentPage);
+      const containerWidth = Math.min($('canvasWrap').clientWidth - 36, 820);
+      const initialViewport = page.getViewport({ scale: 1 });
+      const scale = containerWidth / initialViewport.width;
+      const viewport = page.getViewport({ scale });
+
+      pdfCanvas.width = viewport.width; pdfCanvas.height = viewport.height;
+      overlayCanvas.width = viewport.width; overlayCanvas.height = viewport.height;
+      pdfCanvas.style.width = viewport.width + 'px'; pdfCanvas.style.height = viewport.height + 'px';
+      overlayCanvas.style.width = viewport.width + 'px'; overlayCanvas.style.height = viewport.height + 'px';
+      state.rendered = { width: viewport.width, height: viewport.height };
+
+      await page.render({ canvasContext: pdfCtx, viewport }).promise;
+      pageInfo.textContent = `Página ${state.currentPage} de ${state.totalPages}`;
+      canvasStack.style.display = 'inline-block';
+      emptyState.style.display = 'none';
+      redrawOverlay();
+      updateButtons();
+      updateSelectionText();
+    }
+
+    function normalizeRect(r){ return { x: Math.min(r.x, r.x + r.w), y: Math.min(r.y, r.y + r.h), w: Math.abs(r.w), h: Math.abs(r.h) }; }
+
+    function redrawOverlay(dragRect=null){
+      overlayCtx.clearRect(0,0,overlayCanvas.width,overlayCanvas.height);
+      const rect = dragRect ? normalizeRect(dragRect) : state.selection;
+      if (!rect || rect.w < 3 || rect.h < 3) return;
+
+      if (getSelectedMode() === 'phone') {
+        drawPhonePreview(rect);
+      } else {
+        if (state.qrImage) {
+          overlayCtx.fillStyle = '#ffffff';
+          overlayCtx.fillRect(rect.x, rect.y, rect.w, rect.h);
+        }
+        if (state.qrImage) {
+          const marginPct = Math.max(0, Math.min(30, Number(qrMargin.value || 0))) / 100;
+          const mx = rect.w * marginPct, my = rect.h * marginPct;
+          const innerW = Math.max(0, rect.w - mx * 2), innerH = Math.max(0, rect.h - my * 2);
+          const side = Math.min(innerW, innerH);
+          const drawX = rect.x + mx + (innerW - side) / 2;
+          const drawY = rect.y + my + (innerH - side) / 2;
+          overlayCtx.drawImage(state.qrImage, drawX, drawY, side, side);
+        }
+      }
+
+      overlayCtx.fillStyle = 'rgba(95,141,255,.18)';
+      overlayCtx.strokeStyle = '#7da5ff';
+      overlayCtx.lineWidth = 2;
+      overlayCtx.fillRect(rect.x, rect.y, rect.w, rect.h);
+      overlayCtx.strokeRect(rect.x, rect.y, rect.w, rect.h);
+    }
+
+    function getCanvasPoint(evt){
+      const r = overlayCanvas.getBoundingClientRect();
+      return { x: (evt.clientX - r.left) * (overlayCanvas.width / r.width), y: (evt.clientY - r.top) * (overlayCanvas.height / r.height) };
+    }
+
+    function getPointFromAnyEvent(evt){
+      const touch = evt.touches?.[0] || evt.changedTouches?.[0];
+      if (touch) {
+        return getCanvasPoint({ clientX: touch.clientX, clientY: touch.clientY });
+      }
+      return getCanvasPoint(evt);
+    }
+
+    let dragging = false, movingSelection = false, dragStart = null, selectionStart = null;
+
+    function isPointInRect(p, rect) {
+      if (!rect) return false;
+      return p.x >= rect.x && p.x <= rect.x + rect.w && p.y >= rect.y && p.y <= rect.y + rect.h;
+    }
+
+    function startSelection(evt){
+      if (!state.pdfjsDoc) return;
+      if (evt.cancelable) evt.preventDefault();
+      const p = getPointFromAnyEvent(evt);
+      
+      if (state.selection && isPointInRect(p, state.selection)) {
+        movingSelection = true;
+        dragStart = p;
+        selectionStart = { ...state.selection };
+      } else {
+        dragging = true;
+        dragStart = p;
+        state.selection = null;
+        state.qrImage = null;
+        cleanupOutput();
+      }
+      updateButtons();
+      updateSelectionText();
+      redrawOverlay();
+    }
+
+    function moveSelection(evt){
+      const p = getPointFromAnyEvent(evt);
+      
+      if (!dragging && !movingSelection) {
+        if (state.selection && isPointInRect(p, state.selection)) {
+          overlayCanvas.style.cursor = 'move';
+        } else {
+          overlayCanvas.style.cursor = 'crosshair';
+        }
+        return;
+      }
+      
+      if (evt.cancelable) evt.preventDefault();
+      
+      if (movingSelection) {
+        const dx = p.x - dragStart.x;
+        const dy = p.y - dragStart.y;
+        state.selection.x = selectionStart.x + dx;
+        state.selection.y = selectionStart.y + dy;
+        redrawOverlay();
+      } else if (dragging) {
+        redrawOverlay({ x: dragStart.x, y: dragStart.y, w: p.x - dragStart.x, h: p.y - dragStart.y });
+      }
+    }
+
+    function finishSelection(evt){
+      if (!dragging && !movingSelection) return;
+      if (evt && evt.cancelable) evt.preventDefault();
+      
+      if (movingSelection) {
+        movingSelection = false;
+        dragStart = null;
+        selectionStart = null;
+        updateSelectionText();
+        cleanupOutput();
+      } else if (dragging) {
+        dragging = false;
+        const p = getPointFromAnyEvent(evt);
+        const rect = normalizeRect({ x: dragStart.x, y: dragStart.y, w: p.x - dragStart.x, h: p.y - dragStart.y });
+        dragStart = null;
+        state.selection = rect.w < 8 || rect.h < 8 ? null : rect;
+        state.qrImage = null;
+        redrawOverlay();
+        updateSelectionText();
+        updateButtons();
+        setDiag(state.selection ? 'Selección creada correctamente.' : 'La selección fue demasiado pequeña.');
+        cleanupOutput();
+      }
+    }
+
+    overlayCanvas.addEventListener('mousedown', startSelection);
+    overlayCanvas.addEventListener('mousemove', moveSelection);
+    overlayCanvas.addEventListener('mouseup', finishSelection);
+    overlayCanvas.addEventListener('mouseleave', (evt) => { if (dragging || movingSelection) finishSelection(evt); });
+
+    overlayCanvas.addEventListener('touchstart', startSelection, { passive: false });
+    overlayCanvas.addEventListener('touchmove', moveSelection, { passive: false });
+    overlayCanvas.addEventListener('touchend', finishSelection, { passive: false });
+    overlayCanvas.addEventListener('touchcancel', finishSelection, { passive: false });
+
+    function dataUrlToUint8Array(dataUrl) {
+      const parts = dataUrl.split(',');
+      if (parts.length < 2) throw new Error('No se pudo convertir la imagen QR a bytes.');
+      const base64 = parts[1];
+      const binary = atob(base64);
+      const len = binary.length;
+      const bytes = new Uint8Array(len);
+      for (let i = 0; i < len; i++) bytes[i] = binary.charCodeAt(i);
+      return bytes;
+    }
+
+    function buildQrCanvas() {
+      if (typeof qrcode !== 'function') throw new Error('No cargó la librería del QR');
+      const value = qrLink.value.trim();
+      const qr = qrcode(0, 'M');
+      qr.addData(value);
+      qr.make();
+
+      const cellCount = qr.getModuleCount();
+      const pixelsPerCell = 10;
+      const marginCells = 2;
+      const size = (cellCount + marginCells * 2) * pixelsPerCell;
+
+      const canvas = document.createElement('canvas');
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(0, 0, size, size);
+      ctx.fillStyle = '#000000';
+
+      for (let row = 0; row < cellCount; row++) {
+        for (let col = 0; col < cellCount; col++) {
+          if (qr.isDark(row, col)) {
+            ctx.fillRect((col + marginCells) * pixelsPerCell, (row + marginCells) * pixelsPerCell, pixelsPerCell, pixelsPerCell);
+          }
+        }
+      }
+      return canvas;
+    }
+
+    async function canvasToImage(canvas) {
+      const img = new Image();
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = () => reject(new Error('No se pudo convertir el QR a imagen'));
+        img.src = canvas.toDataURL('image/png');
+      });
+      return img;
+    }
+
+    async function loadQrPreview(){
+      if (getSelectedMode() === 'phone') {
+        state.qrImage = null;
+        redrawOverlay();
+        setDiag('Vista previa del teléfono generada correctamente.');
+        return;
+      }
+      setDiag('Generando QR localmente...');
+      const qrCanvas = buildQrCanvas();
+      state.qrImage = await canvasToImage(qrCanvas);
+      redrawOverlay();
+      setDiag('Vista previa del QR generada correctamente.');
+    }
+
+    async function buildOutputPdfBlob(){
+      if (typeof PDFLib === 'undefined') throw new Error('No cargó PDFLib');
+      setDiag('Abriendo PDF para edición...');
+      const { PDFDocument, rgb } = PDFLib;
+
+      const editableCopy = new Uint8Array(state.pdfBytesForEdit); // copia nueva para cada generación
+      const pdfDoc = await PDFDocument.load(editableCopy);
+
+      const page = pdfDoc.getPages()[state.currentPage - 1];
+      if (!page) throw new Error('No se encontró la página seleccionada.');
+
+      const pdfWidth = page.getWidth(), pdfHeight = page.getHeight();
+      const cw = state.rendered.width, ch = state.rendered.height;
+      const s = state.selection;
+      if (!s) throw new Error('No hay una selección activa.');
+
+      const x = (s.x / cw) * pdfWidth;
+      const y = pdfHeight - ((s.y + s.h) / ch) * pdfHeight;
+      const width = (s.w / cw) * pdfWidth;
+      const height = (s.h / ch) * pdfHeight;
+
+      if (getSelectedMode() === 'phone') {
+        const phone = getPhoneDisplayValue(phoneNumber.value);
+        if (!phone) throw new Error('Escribe un número de teléfono.');
+        page.drawRectangle({ x, y, width, height, color: rgb(1,1,1) });
+
+        const { StandardFonts } = PDFLib;
+        const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+        const fontRegular = await pdfDoc.embedFont(StandardFonts.Helvetica);
+
+        const extra = qrLink.value.trim();
+        const boxCenterX = x + width / 2;
+
+        setDiag('Insertando teléfono en la página...');
+
+        const fitPdfFont = (fontObj, text, startSize, minSize, maxWidth) => {
+          let s = startSize;
+          while (s > minSize) {
+            if (fontObj.widthOfTextAtSize(text, s) <= maxWidth) return s;
+            s -= 0.5;
+          }
+          return minSize;
+        };
+
+        if (extra) {
+          const maxTextWidth = width * 0.86;
+          const smallStart = Math.max(9, Math.min(width * 0.11, height * 0.20));
+          const mainStart = Math.max(13, Math.min(width * 0.18, height * 0.34));
+          const smallFontSize = fitPdfFont(fontRegular, extra, smallStart, 7, maxTextWidth);
+          const mainFontSize = fitPdfFont(fontBold, phone, mainStart, 10, maxTextWidth);
+
+          const extraWidth = fontRegular.widthOfTextAtSize(extra, smallFontSize);
+          const phoneWidth = fontBold.widthOfTextAtSize(phone, mainFontSize);
+
+          page.drawText(extra, {
+            x: boxCenterX - (extraWidth / 2),
+            y: y + height * 0.66,
+            size: smallFontSize,
+            font: fontRegular,
+            color: rgb(0.04, 0.08, 0.19),
+          });
+
+          page.drawText(phone, {
+            x: boxCenterX - (phoneWidth / 2),
+            y: y + height * 0.16,
+            size: mainFontSize,
+            font: fontBold,
+            color: rgb(0.04, 0.08, 0.19),
+          });
+        } else {
+          const maxTextWidth = width * 0.88;
+          const mainStart = Math.max(13, Math.min(width * 0.20, height * 0.42));
+          const mainFontSize = fitPdfFont(fontBold, phone, mainStart, 10, maxTextWidth);
+          const phoneWidth = fontBold.widthOfTextAtSize(phone, mainFontSize);
+
+          page.drawText(phone, {
+            x: boxCenterX - (phoneWidth / 2),
+            y: y + (height - mainFontSize) / 2,
+            size: mainFontSize,
+            font: fontBold,
+            color: rgb(0.04, 0.08, 0.19),
+          });
+        }
+      } else {
+        setDiag('Generando imagen QR local...');
+        const qrCanvas = buildQrCanvas();
+        const pngBytes = dataUrlToUint8Array(qrCanvas.toDataURL('image/png'));
+        const qrPng = await pdfDoc.embedPng(pngBytes);
+
+        page.drawRectangle({ x, y, width, height, color: rgb(1,1,1) });
+
+        const marginPct = Math.max(0, Math.min(30, Number(qrMargin.value || 0))) / 100;
+        const mx = width * marginPct, my = height * marginPct;
+        const innerW = Math.max(0, width - mx*2), innerH = Math.max(0, height - my*2);
+        const side = Math.min(innerW, innerH);
+        const drawX = x + mx + (innerW - side) / 2;
+        const drawY = y + my + (innerH - side) / 2;
+
+        setDiag('Insertando QR en la página...');
+        page.drawImage(qrPng, { x: drawX, y: drawY, width: side, height: side });
+      }
+
+      setDiag('Guardando archivo final...');
+      const out = await pdfDoc.save();
+      return new Blob([out], { type:'application/pdf' }); // always returns PDF blob; caller converts if needed
+    }
+
+    // Render the PDF blob at 3× scale and export as JPG or PNG (max quality)
+    async function pdfBlobToImageBlob(pdfBlob, format) {
+      const arrayBuf = await pdfBlob.arrayBuffer();
+      const doc = await pdfjsLib.getDocument({ data: new Uint8Array(arrayBuf) }).promise;
+      const page = await doc.getPage(state.currentPage);
+      const SCALE = 3; // 3× for print-quality output
+      const vp = page.getViewport({ scale: SCALE });
+      const offscreen = document.createElement('canvas');
+      offscreen.width  = vp.width;
+      offscreen.height = vp.height;
+      const ctx = offscreen.getContext('2d');
+      if (format === 'jpg') {
+        ctx.fillStyle = '#ffffff'; // white background for JPG (no transparency)
+        ctx.fillRect(0, 0, offscreen.width, offscreen.height);
+      }
+      await page.render({ canvasContext: ctx, viewport: vp }).promise;
+      return new Promise(resolve => {
+        if (format === 'jpg') {
+          offscreen.toBlob(resolve, 'image/jpeg', 1.0); // quality 100%
+        } else {
+          offscreen.toBlob(resolve, 'image/png');
+        }
+      });
+    }
+
+    let selectedFormat = 'pdf';
+
+    // Format selector buttons
+    document.querySelectorAll('.fmt-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        document.querySelectorAll('.fmt-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        selectedFormat = btn.dataset.fmt;
+        if (state.outputPdfBlob) {
+          await applyFormatToOutput(state.outputPdfBlob);
+        }
+      });
+    });
+
+    async function applyFormatToOutput(pdfBlob) {
+      setDiag('Convirtiendo al formato seleccionado...');
+      let blob, ext;
+      if (selectedFormat === 'pdf') {
+        blob = pdfBlob;
+        ext = 'pdf';
+      } else {
+        blob = await pdfBlobToImageBlob(pdfBlob, selectedFormat);
+        ext = selectedFormat;
+      }
+      if (state.outputUrl) URL.revokeObjectURL(state.outputUrl);
+      state.outputBlob = blob;
+      state.outputUrl = URL.createObjectURL(blob);
+      const baseName = (state.file?.name || 'documento').replace(/\.[^.]+$/, '');
+      downloadLink.href = state.outputUrl;
+      downloadLink.download = baseName + '_qr.' + ext;
+      openLink.href = state.outputUrl;
+      setDiag('Archivo listo en formato ' + ext.toUpperCase() + '.');
+      setStatus('Archivo generado en ' + ext.toUpperCase() + '. Ya puedes descargarlo.', 'ok');
+    }
+
+    async function presentOutput(blob){
+      cleanupOutput();
+      state.outputPdfBlob = blob; // always keep the PDF master
+      resultBox.classList.add('show');
+      savePickerBtn.style.display = ('showSaveFilePicker' in window) ? 'block' : 'none';
+      await applyFormatToOutput(blob);
+    }
+
+    async function saveWithPicker(){
+      if (!state.outputBlob || !('showSaveFilePicker' in window)) return;
+      const mimeMap = { pdf: 'application/pdf', jpg: 'image/jpeg', png: 'image/png' };
+      const extMap  = { pdf: ['.pdf'], jpg: ['.jpg'], png: ['.png'] };
+      const mime = mimeMap[selectedFormat] || 'application/pdf';
+      const exts = extMap[selectedFormat] || ['.pdf'];
+      const handle = await window.showSaveFilePicker({
+        suggestedName: downloadLink.download,
+        types: [{ description: selectedFormat.toUpperCase(), accept: { [mime]: exts } }]
+      });
+      const writable = await handle.createWritable();
+      await writable.write(state.outputBlob);
+      await writable.close();
+      setStatus('Archivo guardado correctamente.', 'ok');
+    }
+
+    pdfSource.addEventListener('change', async () => {
+      const val = pdfSource.value;
+      const actionsDiv = $('predefinedActions');
+      if (val === 'custom') {
+        customPdfWrapper.style.display = 'block';
+        if(actionsDiv) actionsDiv.style.display = 'none';
+      } else {
+        customPdfWrapper.style.display = 'none';
+        if(actionsDiv) {
+          actionsDiv.style.display = 'block';
+          $('downloadOriginalBtn').href = val;
+        }
+        try {
+          const optText = pdfSource.options[pdfSource.selectedIndex].text;
+          setDiag('Descargando PDF predefinido...');
+          setStatus('Cargando PDF predefinido...', 'ok');
+          await loadPdfFromUrl(val, optText + '.pdf');
+          setDiag('Archivo cargado correctamente.');
+          setStatus('Archivo cargado. Ahora selecciona el área donde quieres poner el QR.', 'ok');
+        } catch (err) {
+          setDiag('Falló la carga del PDF predefinido.');
+          setStatus('No se pudo cargar el PDF.\n' + (err?.message || String(err)), 'error');
+        }
+      }
+    });
+
+    pdfFile.addEventListener('change', async (evt) => {
+      const file = evt.target.files?.[0];
+      if (!file) return;
+      const isImage = file.type.startsWith('image/');
+      try {
+        setDiag('Cargando archivo...');
+        setStatus('Cargando archivo...', 'ok');
+        state.originalImageBytes = null;
+        state.originalImageType  = null;
+        await loadPdfFromFile(file);
+        setDiag('Archivo cargado correctamente.');
+        const msg = isImage
+          ? 'Imagen cargada. Selecciona el área donde quieres poner el QR.'
+          : 'Archivo cargado. Selecciona el área donde quieres poner el QR.';
+        setStatus(msg, 'ok');
+      } catch (err) {
+        setDiag('Falló la carga.');
+        setStatus('No se pudo cargar el archivo.\n' + (err?.message || String(err)), 'error');
+      }
+    });
+
+    prevPage.addEventListener('click', async () => {
+      state.currentPage -= 1; state.selection = null; state.qrImage = null; updateSelectionText(); cleanupOutput(); await renderCurrentPage();
+    });
+    nextPage.addEventListener('click', async () => {
+      state.currentPage += 1; state.selection = null; state.qrImage = null; updateSelectionText(); cleanupOutput(); await renderCurrentPage();
+    });
+    clearBtn.addEventListener('click', () => {
+      state.selection = null; state.qrImage = null; redrawOverlay(); updateSelectionText(); updateButtons(); clearStatus(); setDiag('Selección limpiada.'); cleanupOutput();
+    });
+    previewBtn.addEventListener('click', async () => {
+      try {
+        setStatus('Generando vista previa del QR...', 'ok');
+        await loadQrPreview();
+        setStatus('Vista previa lista. Si quedó bien, pulsa "Generar archivo final".', 'ok');
+      } catch (err) {
+        setStatus('No se pudo generar la vista previa.\n' + (err?.message || String(err)), 'error');
+      }
+    });
+    generateBtn.addEventListener('click', async () => {
+      try {
+        generateBtn.disabled = true;
+        generateBtn.textContent = 'Generando...';
+        setStatus('Procesando archivo...', 'ok');
+        const blob = await buildOutputPdfBlob();
+        await presentOutput(blob);
+      } catch (err) {
+        setDiag('Error en generación final.');
+        setStatus('No se pudo generar el archivo.\n' + (err?.message || String(err)), 'error');
+      } finally {
+        generateBtn.textContent = 'Generar archivo final';
+        updateButtons();
+      }
+    });
+    savePickerBtn.addEventListener('click', async () => {
+      try {
+        await saveWithPicker();
+      } catch (err) {
+        setStatus('No se pudo guardar con el selector del sistema.\n' + (err?.message || String(err)), 'error');
+      }
+    });
+
+    fitBtn.addEventListener('click', async () => {
+      if (!state.pdfjsDoc) return;
+      try {
+        setDiag('Ajustando vista...');
+        await renderCurrentPage();
+        setDiag('Vista ajustada.');
+      } catch (err) {
+        setStatus('No se pudo ajustar la vista.\n' + (err?.message || String(err)), 'error');
+      }
+    });
+
+    qrMargin.addEventListener('input', redrawOverlay);
+
+    qrLink.addEventListener('input', () => { redrawOverlay(); updateButtons(); });
+    phoneNumber.addEventListener('input', () => { redrawOverlay(); updateButtons(); });
+    contentType.addEventListener('change', () => {
+      state.qrImage = null;
+      refreshContentModeUI();
+      clearStatus();
+      cleanupOutput();
+    });
+
+    refreshContentModeUI();
+
+    const adBanner = $('adBanner');
+    const closeAdBanner = $('closeAdBanner');
+    const adSourceMovil = $('adSourceMovil');
+    const adSourcePc = $('adSourcePc');
+    const adImage = $('adImage');
+
+    const bannersPc = ['img/banner-pc.webp', 'img/banner-pc01.webp', 'img/banner-pc02.webp'];
+    const bannersMovil = ['img/banner-movil.webp', 'img/banner-movil01.webp', 'img/banner-movil02.webp'];
+    let currentBannerIdx = 0;
+    let bannerInterval;
+
+    function startBannerRotation() {
+      if (bannerInterval) clearInterval(bannerInterval);
+      bannerInterval = setInterval(() => {
+        adImage.classList.add('fade-out');
+        setTimeout(() => {
+          currentBannerIdx = (currentBannerIdx + 1) % bannersPc.length;
+          adSourcePc.srcset = bannersPc[currentBannerIdx];
+          adSourceMovil.srcset = bannersMovil[currentBannerIdx];
+          adImage.src = bannersPc[currentBannerIdx];
+          adImage.classList.remove('fade-out');
+        }, 500);
+      }, 10000);
+    }
+
+    setTimeout(() => {
+      if (adBanner && adBanner.style.display !== 'none') {
+        adBanner.classList.add('show');
+        startBannerRotation();
+      }
+    }, 2000);
+
+    closeAdBanner.addEventListener('click', () => {
+      adBanner.style.display = 'none';
+      adBanner.classList.remove('show');
+      if (bannerInterval) clearInterval(bannerInterval);
+      bannerInterval = null;
+    });
+
+    const mql = window.matchMedia('(min-width: 961px)');
+    mql.addEventListener('change', (e) => {
+      if (e.matches) {
+        // Return to PC layout -> restore banner immediately
+        adBanner.style.display = '';
+        adBanner.classList.add('show');
+        startBannerRotation();
+      }
+    });
+
+    // Tutorial Modal
+    const tutorialModal = $('tutorialModal');
+    const openTutorial  = $('openTutorial');
+    const closeTutorial = $('closeTutorial');
+
+    function openModal() {
+      tutorialModal.classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeModal() {
+      tutorialModal.classList.remove('open');
+      document.body.style.overflow = '';
+      // Pause the Wistia player when closing
+      const player = document.getElementById('tutorialPlayer');
+      if (player && typeof player.pause === 'function') player.pause();
+    }
+
+    openTutorial.addEventListener('click', openModal);
+    closeTutorial.addEventListener('click', closeModal);
+
+    // Close when clicking outside the modal box
+    tutorialModal.addEventListener('click', (e) => {
+      if (e.target === tutorialModal) closeModal();
+    });
+
+    // Close with Escape key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && tutorialModal.classList.contains('open')) closeModal();
+    });
+  </script>
+</body>
+</html>
