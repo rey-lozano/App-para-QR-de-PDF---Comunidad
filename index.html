@@ -1498,8 +1498,8 @@
     const CARD_MODELS = {
       tomaya: {
         name: 'TOMAYA',
-        front: 'img/tarjeta-tomaya-frontv2.png',
-        back:  'img/tarjeta-tomaya-back.png',
+        front: 'img/tarjeta-tomaya-frontv2-HQ.png',
+        back:  'img/tarjeta-tomaya-back-HQ.png',
         width: 1004, height: 650,
         // Iconos dibujados por código (SVG intercambiables). cx = centro horizontal, size = tamaño.
         icons: {
@@ -1526,9 +1526,10 @@
     };
 
     let currentModel = 'tomaya';
-    // Escala de exportación: la descarga se genera a 3x (~900 DPI) para que
+    // Escala de exportación: la descarga se genera a 3.125x (~937 DPI) para
+    // aprovechar la resolución nativa de las plantillas HQ (3137x2030 px) y que
     // texto, iconos SVG y QR salgan ultra nítidos. La vista previa va a 1x.
-    const EXPORT_SCALE = 3;
+    const EXPORT_SCALE = 3.125;
     let started = false;
     const images = {};        // cache de imágenes de plantilla
     const els = {};
