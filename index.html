@@ -1513,30 +1513,41 @@
     const CARD_MODELS = {
       tomaya: {
         name: 'TOMAYA',
-        front: 'img/tarjeta-tomaya-frontv3.png',
-        back:  'img/tarjeta-tomaya-back-HQ.png',
+        front: 'img/tarjeta-tomaya-frontv4.png',
+        back:  'img/tarjeta-tomaya-backv2.png',
         width: 1004, height: 650,
+        // Logo TOMAYA (PNG transparente) compuesto por código.
+        // sx/sy/sw/sh = recorte del contenido dentro del PNG 1024². x/y/w/h = destino lógico (ratio 4:1).
+        logo: { src: 'img/logo-tomaya.png', sx: 34, sy: 376, sw: 976, sh: 244, x: 74, y: 501, w: 268, h: 67 },
+        // Rayita divisoria vertical entre el logo y la tagline
+        divider: { x: 360, y1: 508, y2: 562, width: 2, color: 'rgba(255,255,255,0.5)' },
+        // Tagline inferior: "Ahorro real" en negrita + " con tarifa plana" normal
+        tagline: { x: 398, cy: 538, pt: 7.5, bold: 'Ahorro real', regular: ' con tarifa plana', color: '#FFFFFF' },
         // Iconos dibujados por código (SVG intercambiables). cx = centro horizontal, size = tamaño.
         icons: {
-          cx: 98, size: 34,
+          cx: 98, size: 42,
           list: [
             { src: 'img/icon-phone.svg', cy: 291 },
             { src: 'img/icon-mail.svg',  cy: 346.5 },
             { src: 'img/icon-web.svg',   cy: 402.5 },
           ]
         },
-        // x = ancla izquierda, y = línea base del texto (textBaseline alphabetic)
+        // x = ancla izquierda, y = línea base (alphabetic) o centro (middle). text = texto fijo (si no, viene del input)
         fields: {
-          // nombre: y = línea base (alphabetic)
-          nombre:   { x: 87,  y: 173,   baseline: 'alphabetic', weight: 700, pt: 15.3, maxWidth: 520 },
-          // contactos: y = centro vertical del icono (baseline 'middle') para alinear con cada icono
-          telefono: { x: 130, y: 291,   baseline: 'middle', weight: 400, pt: 7.5, maxWidth: 470 },
-          correo:   { x: 130, y: 346.5, baseline: 'middle', weight: 400, pt: 7.5, maxWidth: 470 },
-          enlace:   { x: 130, y: 402.5, baseline: 'middle', weight: 400, pt: 7.5, maxWidth: 470 },
+          nombre:    { x: 87,  y: 173,   baseline: 'alphabetic', weight: 700, pt: 17.3, maxWidth: 640 },
+          embajador: { x: 88,  y: 215,   baseline: 'alphabetic', weight: 500, pt: 8.5,  maxWidth: 500, text: 'Embajador independiente' },
+          // contactos: y = centro del icono (baseline 'middle'). maxWidth por línea = hueco hasta la mascota
+          telefono:  { x: 130, y: 291,   baseline: 'middle', weight: 400, pt: 9.5, maxWidth: 510 },
+          correo:    { x: 130, y: 346.5, baseline: 'middle', weight: 400, pt: 9.5, maxWidth: 618 },
+          enlace:    { x: 130, y: 402.5, baseline: 'middle', weight: 400, pt: 9.5, maxWidth: 670 },
         },
         // Cuadro blanco del reverso donde va el QR
         // scale: cuánto del cuadro ocupa el QR (1 = lo llena). margin: celdas de quiet zone.
-        qr: { x: 107, y: 161, size: 327, scale: 0.97, margin: 1, fake: 'img/fake-qr.svg' }
+        qr: { x: 107, y: 161, size: 327, scale: 0.97, margin: 1, fake: 'img/fake-qr.svg' },
+        // Texto promo del reverso: 2 líneas centradas entre el logo y el recuadro "1€ al trimestre"
+        // Alineado a la izquierda desde el borde izquierdo del recuadro "1€" (xLeft). justify:true lo estira a ambos lados.
+        backText: { xLeft: 540, xRight: 897, y1: 340, y2: 380, pt: 7.2, weight: 500, color: '#FFFFFF', justify: false,
+                    line1: 'Comparte tu ahorro y', line2: 'reduce tu factura hasta' }
       }
     };
 
@@ -1598,6 +1609,7 @@
       try {
         await Promise.all([
           document.fonts.load('700 64px Poppins'),
+          document.fonts.load('500 32px Poppins'),
           document.fonts.load('400 24px Poppins'),
           document.fonts.ready
         ]);
@@ -1635,6 +1647,17 @@
       return (raw || '').replace(/^\s*https?:\/\//i, '');
     }
 
+    // Dibuja una línea justificada a ambos lados entre xL y xR (reparte el espacio entre palabras)
+    function drawJustified(ctx, line, xL, xR, y){
+      const words = line.split(' ');
+      if (words.length < 2){ ctx.fillText(line, xL, y); return; }
+      const wordW = words.map(w => ctx.measureText(w).width);
+      const total = wordW.reduce((a, b) => a + b, 0);
+      const gap = (xR - xL - total) / (words.length - 1);
+      let x = xL;
+      words.forEach((w, i) => { ctx.fillText(w, x, y); x += wordW[i] + gap; });
+    }
+
     // Reduce el tamaño de fuente hasta que el texto quepa en maxWidth
     function fitFont(ctx, text, weight, basePx, maxWidth){
       let px = basePx;
@@ -1662,6 +1685,13 @@
       ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
       ctx.drawImage(frontImg, 0, 0, W, H);
 
+      // Logo TOMAYA (PNG transparente compuesto por código)
+      if (m.logo){
+        const lg = await loadImage(m.logo.src);
+        ctx.drawImage(lg, m.logo.sx, m.logo.sy, m.logo.sw, m.logo.sh,
+                      m.logo.x * scale, m.logo.y * scale, m.logo.w * scale, m.logo.h * scale);
+      }
+
       // Iconos (SVG): vectoriales, nítidos a cualquier escala
       if (m.icons){
         const s = m.icons.size * scale;
@@ -1671,15 +1701,42 @@
         });
       }
 
+      // Textos: nombre, "Embajador independiente" (fijo) y datos de contacto
       ctx.fillStyle = '#FFFFFF';
       ctx.textAlign = 'left';
       const values = getValues();
       for (const key of Object.keys(m.fields)){
         const f = m.fields[key];
+        const text = (f.text != null) ? f.text : values[key];
         const px = f.pt * PT_TO_PX * scale;
         ctx.textBaseline = f.baseline || 'alphabetic';
-        fitFont(ctx, values[key], f.weight, px, f.maxWidth * scale);
-        ctx.fillText(values[key], f.x * scale, f.y * scale);
+        fitFont(ctx, text, f.weight, px, f.maxWidth * scale);
+        ctx.fillText(text, f.x * scale, f.y * scale);
+      }
+
+      // Rayita divisoria vertical entre logo y tagline
+      if (m.divider){
+        const dv = m.divider;
+        ctx.strokeStyle = dv.color;
+        ctx.lineWidth = dv.width * scale;
+        ctx.beginPath();
+        ctx.moveTo(dv.x * scale, dv.y1 * scale);
+        ctx.lineTo(dv.x * scale, dv.y2 * scale);
+        ctx.stroke();
+      }
+
+      // Tagline: "Ahorro real" (negrita) + " con tarifa plana" (normal)
+      if (m.tagline){
+        const tg = m.tagline;
+        const tpx = tg.pt * PT_TO_PX * scale;
+        ctx.fillStyle = tg.color;
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.font = `700 ${tpx}px Poppins, sans-serif`;
+        ctx.fillText(tg.bold, tg.x * scale, tg.cy * scale);
+        const bw = ctx.measureText(tg.bold).width;
+        ctx.font = `400 ${tpx}px Poppins, sans-serif`;
+        ctx.fillText(tg.regular, tg.x * scale + bw, tg.cy * scale);
       }
     }
 
@@ -1704,6 +1761,23 @@
         const fake = await loadImage(box.fake);
         ctx.imageSmoothingEnabled = true;
         ctx.drawImage(fake, box.x * scale + offset, box.y * scale + offset, drawSize, drawSize);
+      }
+
+      // Texto promo (2 líneas justificadas al ancho del recuadro "1€")
+      if (m.backText){
+        const bt = m.backText;
+        const bpx = bt.pt * PT_TO_PX * scale;
+        ctx.fillStyle = bt.color;
+        ctx.font = `${bt.weight} ${bpx}px Poppins, sans-serif`;
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'alphabetic';
+        if (bt.justify){
+          drawJustified(ctx, bt.line1, bt.xLeft * scale, bt.xRight * scale, bt.y1 * scale);
+          drawJustified(ctx, bt.line2, bt.xLeft * scale, bt.xRight * scale, bt.y2 * scale);
+        } else {
+          ctx.fillText(bt.line1, bt.xLeft * scale, bt.y1 * scale);
+          ctx.fillText(bt.line2, bt.xLeft * scale, bt.y2 * scale);
+        }
       }
     }
 
