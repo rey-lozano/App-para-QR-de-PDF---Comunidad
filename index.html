@@ -636,6 +636,7 @@
           <button class="btn-secondary" id="previewBtn" disabled>Actualizar vista previa</button>
           <button class="btn-primary" id="generateBtn" disabled>Generar archivo final</button>
           <button class="btn-ghost" id="clearBtn" disabled>Limpiar selección</button>
+          <button class="btn-ghost" id="resetBtn">Empezar de nuevo</button>
         </div>
 
 
@@ -655,6 +656,7 @@
             <a id="openLink" class="action-link secondary" href="#" target="_blank" rel="noopener">Abrir en pestaña</a>
             <button id="savePickerBtn" class="btn-secondary" style="display:none;">Guardar con selector del sistema</button>
           </div>
+          <div class="result-actions" id="extraDownloads"></div>
         </div>
       </div>
 
@@ -794,22 +796,24 @@
       currentPage: 1,
       totalPages: 0,
       rendered: { width: 0, height: 0 },
-      // Cada elemento tiene su propia caja: se pueden colocar en sitios distintos
-      // del folleto (el QR en su marco, el teléfono en el botón de abajo).
-      // Cada caja guarda la página y el tamaño de canvas con el que se dibujó.
-      selections: { qr: null, phone: null },
+      // Cada página lleva su propio juego de cajas, y dentro de cada página el QR
+      // y el teléfono van por separado. Así una cara y su reverso se colocan
+      // independientemente: { 1: {qr, phone}, 2: {qr, phone} }.
+      selections: {},
       target: 'qr',
       // Vista previa limpia: se ocultan los recuadros de recorte para ver el
       // documento tal cual va a quedar. Cualquier retoque los vuelve a mostrar.
       cleanPreview: false,
       qrImage: null,
       outputBlob: null,
-      outputUrl: null
+      outputUrl: null,
+      extraUrls: []
     };
 
     const pdfSource = $('pdfSource'), customPdfWrapper = $('customPdfWrapper'), pdfFile = $('pdfFile'), qrLink = $('qrLink'), qrMargin = $('qrMargin'), useQr = $('useQr'), usePhone = $('usePhone'), phoneNumber = $('phoneNumber'), phoneExtra = $('phoneExtra'), qrFields = $('qrFields'), phoneFields = $('phoneFields'), placeTarget = $('placeTarget');
-    const previewBtn = $('previewBtn'), generateBtn = $('generateBtn'), clearBtn = $('clearBtn');
+    const previewBtn = $('previewBtn'), generateBtn = $('generateBtn'), clearBtn = $('clearBtn'), resetBtn = $('resetBtn');
     const prevPage = $('prevPage'), nextPage = $('nextPage'), pageInfo = $('pageInfo');
+    const extraDownloads = $('extraDownloads');
     const statusBox = $('status'), pdfCanvas = $('pdfCanvas'), overlayCanvas = $('overlayCanvas');
     const pdfCtx = pdfCanvas.getContext('2d'), overlayCtx = overlayCanvas.getContext('2d');
     const canvasStack = $('canvasStack'), emptyState = $('emptyState');
@@ -821,12 +825,22 @@
     function cleanupOutput(){
       resultBox.classList.remove('show');
       state.outputBlob = null;
+      // Sin esto el PDF maestro sobrevivía al cambio y los botones de formato
+      // resucitaban el archivo anterior, como si no se pudiera modificar nada.
+      state.outputPdfBlob = null;
       if (state.outputUrl) {
         try { URL.revokeObjectURL(state.outputUrl); } catch(e) {}
         state.outputUrl = null;
       }
+      soltarUrlsExtra();
       downloadLink.removeAttribute('href');
       openLink.removeAttribute('href');
+    }
+
+    function soltarUrlsExtra(){
+      (state.extraUrls || []).forEach(u => { try { URL.revokeObjectURL(u); } catch(e) {} });
+      state.extraUrls = [];
+      if (extraDownloads) extraDownloads.innerHTML = '';
     }
     function getOutputName(){
       const baseName = (state.file?.name || 'documento').replace(/\.pdf$/i,'');
@@ -838,13 +852,31 @@
       return { qr: useQr.checked, phone: usePhone.checked };
     }
 
-    // Devuelve la caja de un elemento en coordenadas del canvas actual, o null si
-    // no está colocada o vive en otra página.
+    // Cajas de una página (se crean vacías la primera vez que se piden).
+    function cajasDe(pagina){
+      if (!state.selections[pagina]) state.selections[pagina] = { qr: null, phone: null };
+      return state.selections[pagina];
+    }
+
+    // Caja de un elemento en la página que se está viendo, ya en coordenadas del
+    // canvas actual. Null si en esta página no se ha colocado.
     function boxOnCanvas(kind){
-      const sel = state.selections[kind];
-      if (!sel || sel.page !== state.currentPage || !sel.cw || !sel.ch) return null;
+      const sel = cajasDe(state.currentPage)[kind];
+      if (!sel || !sel.cw || !sel.ch) return null;
       const kx = state.rendered.width / sel.cw, ky = state.rendered.height / sel.ch;
       return { x: sel.x * kx, y: sel.y * ky, w: sel.w * kx, h: sel.h * ky };
+    }
+
+    // Recorre todas las cajas colocadas, con su número de página.
+    function todasLasCajas(){
+      const salida = [];
+      for (const pagina of Object.keys(state.selections)) {
+        for (const kind of ['qr', 'phone']) {
+          const sel = state.selections[pagina][kind];
+          if (sel) salida.push({ pagina: Number(pagina), kind, sel });
+        }
+      }
+      return salida.sort((a, b) => a.pagina - b.pagina);
     }
 
     // Guarda una caja (en coordenadas del canvas actual) para un elemento.
@@ -875,8 +907,7 @@
     }
 
     function setBox(kind, rect){
-      state.selections[kind] = rect ? {
-        page: state.currentPage,
+      cajasDe(state.currentPage)[kind] = rect ? {
         x: rect.x, y: rect.y, w: rect.w, h: rect.h,
         cw: state.rendered.width, ch: state.rendered.height,
         dark: kind === 'phone' ? isDarkUnder(rect) : false
@@ -972,37 +1003,45 @@
       return minSize;
     }
 
+    // Un solo sitio decide tamaños y alturas del teléfono, siempre en píxeles
+    // de canvas. La vista previa lo usa tal cual y el PDF lo escala, así que lo
+    // que se ve en pantalla es lo que sale en el archivo.
+    // 'centro' es la altura del centro visual del texto, en tanto por uno desde
+    // el borde de arriba de la caja.
+    function medidasTelefono(w, h, phone, extra){
+      const ancho = w * (extra ? 0.86 : 0.88);
+      const lado = Math.min(w, h);
+      if (extra) {
+        return {
+          ancho,
+          extra: { size: fitPreviewFont(extra, ancho, Math.max(11, lado * 0.20), 9, '600'), centro: 0.28 },
+          phone: { size: fitPreviewFont(phone, ancho, Math.max(18, lado * 0.34), 14, '700'), centro: 0.72 }
+        };
+      }
+      return {
+        ancho,
+        extra: null,
+        phone: { size: fitPreviewFont(phone, ancho, Math.max(18, lado * 0.42), 14, '700'), centro: 0.5 }
+      };
+    }
+
     function drawPhonePreview(rect, dark){
       const phone = getPhoneDisplayValue(phoneNumber.value);
       if (!phone || rect.w < 3 || rect.h < 3) return;
-      overlayCtx.save();
-
-      const cx = rect.x + rect.w / 2;
       const extra = phoneExtra.value.trim();
-      const availableWidth = rect.w * 0.86;
-      const color = dark ? '#ffffff' : '#0b1530';
+      const m = medidasTelefono(rect.w, rect.h, phone, extra);
+      const cx = rect.x + rect.w / 2;
 
-      overlayCtx.fillStyle = color;
+      overlayCtx.save();
+      overlayCtx.fillStyle = dark ? '#ffffff' : '#0b1530';
       overlayCtx.textAlign = 'center';
       overlayCtx.textBaseline = 'middle';
-
-      if (extra) {
-        const smallStart = Math.max(11, Math.min(rect.w, rect.h) * 0.20);
-        const phoneStart = Math.max(18, Math.min(rect.w, rect.h) * 0.34);
-        const small = fitPreviewFont(extra, availableWidth, smallStart, 9, '600');
-        const phoneSize = fitPreviewFont(phone, availableWidth, phoneStart, 14, '700');
-
-        overlayCtx.font = `600 ${small}px Inter, Arial, sans-serif`;
-        overlayCtx.fillText(extra, cx, rect.y + rect.h * 0.28, availableWidth);
-
-        overlayCtx.font = `700 ${phoneSize}px Inter, Arial, sans-serif`;
-        overlayCtx.fillText(phone, cx, rect.y + rect.h * 0.72, availableWidth);
-      } else {
-        const phoneStart = Math.max(18, Math.min(rect.w, rect.h) * 0.42);
-        const phoneSize = fitPreviewFont(phone, availableWidth, phoneStart, 14, '700');
-        overlayCtx.font = `700 ${phoneSize}px Inter, Arial, sans-serif`;
-        overlayCtx.fillText(phone, cx, rect.y + rect.h / 2, availableWidth);
+      if (m.extra) {
+        overlayCtx.font = `600 ${m.extra.size}px Inter, Arial, sans-serif`;
+        overlayCtx.fillText(extra, cx, rect.y + rect.h * m.extra.centro, m.ancho);
       }
+      overlayCtx.font = `700 ${m.phone.size}px Inter, Arial, sans-serif`;
+      overlayCtx.fillText(phone, cx, rect.y + rect.h * m.phone.centro, m.ancho);
       overlayCtx.restore();
     }
 
@@ -1010,29 +1049,37 @@
       const ready = !!state.pdfBytesForView && !!state.pdfjsDoc;
       const kinds = activeKinds();
       const value = k => k === 'qr' ? qrLink.value.trim() : phoneNumber.value.trim();
-      // Cada elemento marcado necesita su dato y su caja.
-      const listo = kinds.length > 0 && kinds.every(k => !!value(k) && !!state.selections[k]);
+      // Vale con que haya al menos una caja puesta de un elemento marcado que
+      // tenga su dato: el resto de páginas puede quedarse sin nada.
+      const colocadas = todasLasCajas().filter(c => kinds.includes(c.kind));
+      const listo = colocadas.length > 0 && colocadas.every(c => !!value(c.kind));
       previewBtn.disabled = !(ready && listo);
       generateBtn.disabled = !(ready && listo);
-      clearBtn.disabled = !(state.selections.qr || state.selections.phone);
+      const aqui = cajasDe(state.currentPage);
+      clearBtn.disabled = !(aqui.qr || aqui.phone);
       prevPage.disabled = !(ready && state.currentPage > 1);
       nextPage.disabled = !(ready && state.currentPage < state.totalPages);
     }
     function updateSelectionText(){
       const nombre = { qr: 'QR', phone: 'Teléfono' };
       const kinds = activeKinds();
-      const partes = kinds.map(k => {
-        const s = state.selections[k];
-        if (!s) return `${nombre[k]}: sin colocar`;
-        return `${nombre[k]}: pág. ${s.page} · X ${Math.round(s.x)} · Y ${Math.round(s.y)} · ${Math.round(s.w)} × ${Math.round(s.h)} px`;
-      });
       if (!kinds.length) {
         $('selText').textContent = 'Marca QR o teléfono.';
-      } else if (!state.selections.qr && !state.selections.phone) {
-        $('selText').textContent = 'Dibuja un recuadro sobre el PDF.';
-      } else {
-        $('selText').textContent = partes.join(' — ');
+        return;
       }
+      const aqui = cajasDe(state.currentPage);
+      const partes = kinds.map(k => {
+        const s = aqui[k];
+        if (!s) return `${nombre[k]}: sin colocar`;
+        return `${nombre[k]}: X ${Math.round(s.x)} · Y ${Math.round(s.y)} · ${Math.round(s.w)} × ${Math.round(s.h)} px`;
+      });
+      // Lo de las otras páginas se resume aparte, para no perderlo de vista.
+      const fuera = todasLasCajas().filter(c => c.pagina !== state.currentPage && kinds.includes(c.kind));
+      const resumen = fuera.length
+        ? ' — en otras páginas: ' + [...new Set(fuera.map(c => 'pág. ' + c.pagina + ' (' + nombre[c.kind] + ')'))].join(', ')
+        : '';
+      const base = (state.totalPages > 1 ? `Página ${state.currentPage} · ` : '') + partes.join(' — ');
+      $('selText').textContent = base + resumen;
     }
 
     async function loadPdfFromBytes(buffer, fileName){
@@ -1049,7 +1096,7 @@
       state.totalPages = state.pdfjsDoc.numPages;
       state.currentPage = 1;
       state.cleanPreview = false;
-      state.selections = { qr: null, phone: null };
+      state.selections = {};
       state.qrImage = null;
       cleanupOutput();
       await renderCurrentPage();
@@ -1150,7 +1197,7 @@
             overlayCtx.fillRect(box.x, box.y, box.w, box.h);
             drawQrInBox(box);
           } else {
-            const sel = state.selections.phone;
+            const sel = cajasDe(state.currentPage).phone;
             const dark = dragRect && kind === target ? isDarkUnder(box) : !!(sel && sel.dark);
             drawPhonePreview(box, dark);
           }
@@ -1271,7 +1318,7 @@
           setDiag('Marca antes QR o teléfono.');
         } else if (rect.w < 8 || rect.h < 8) {
           // Clic sin arrastrar: se deja como estaba.
-          setDiag(state.selections[target] ? 'Sin cambios: arrastra para dibujar un recuadro.' : 'La selección fue demasiado pequeña.');
+          setDiag(cajasDe(state.currentPage)[target] ? 'Sin cambios: arrastra para dibujar un recuadro.' : 'La selección fue demasiado pequeña.');
         } else {
           setBox(target, rect);
           setDiag(target === 'qr' ? 'Recuadro del QR colocado.' : 'Recuadro del teléfono colocado.');
@@ -1379,25 +1426,12 @@
       const phone = getPhoneDisplayValue(phoneNumber.value);
       if (kinds.includes('phone') && !phone) throw new Error('Escribe un número de teléfono.');
       if (kinds.includes('qr') && !qrLink.value.trim()) throw new Error('Escribe el link o texto para el QR.');
-      for (const kind of kinds) {
-        if (!state.selections[kind]) {
-          throw new Error(kind === 'qr' ? 'Falta dibujar el recuadro del QR.' : 'Falta dibujar el recuadro del teléfono.');
-        }
-      }
+      const colocadas = todasLasCajas().filter(c => kinds.includes(c.kind));
+      if (!colocadas.length) throw new Error('Falta dibujar algún recuadro sobre el documento.');
 
-      const fitPdfFont = (fontObj, text, startSize, minSize, maxWidth) => {
-        let s = startSize;
-        while (s > minSize) {
-          if (fontObj.widthOfTextAtSize(text, s) <= maxWidth) return s;
-          s -= 0.5;
-        }
-        return minSize;
-      };
-
-      for (const kind of kinds) {
-        const sel = state.selections[kind];
-        const page = pdfDoc.getPages()[sel.page - 1];
-        if (!page) throw new Error('No se encontró la página ' + sel.page + '.');
+      for (const { pagina, kind, sel } of colocadas) {
+        const page = pdfDoc.getPages()[pagina - 1];
+        if (!page) throw new Error('No se encontró la página ' + pagina + '.');
         const pdfWidth = page.getWidth(), pdfHeight = page.getHeight();
         const box = {
           x: (sel.x / sel.cw) * pdfWidth,
@@ -1430,50 +1464,32 @@
         const fontRegular = await pdfDoc.embedFont(StandardFonts.Helvetica);
 
         const extra = phoneExtra.value.trim();
-        const boxCenterX = box.x + box.width / 2;
         const textColor = sel.dark ? rgb(1, 1, 1) : rgb(0.04, 0.08, 0.19);
+        const centroX = box.x + box.width / 2;
+        const k = box.width / sel.w;                    // píxeles de canvas -> puntos
+        const m = medidasTelefono(sel.w, sel.h, phone, extra);
+        const anchoMax = m.ancho * k;
+
+        // El canvas centra el texto por su medio visual; pdf-lib coloca por la
+        // línea base. Por eso hay que bajarla (ascendente - descendente) / 2, que
+        // es justo lo que separa el medio visual de la base. Sin esto el número
+        // salía más abajo que en la vista previa.
+        const escribir = (texto, font, sizeCanvas, centro) => {
+          let size = sizeCanvas * k;
+          while (size > 4 && font.widthOfTextAtSize(texto, size) > anchoMax) size -= 0.5;
+          const asc = font.heightAtSize(size, { descender: false });
+          const desc = font.heightAtSize(size) - asc;
+          const centroY = box.y + box.height * (1 - centro);
+          page.drawText(texto, {
+            x: centroX - font.widthOfTextAtSize(texto, size) / 2,
+            y: centroY - (asc - desc) / 2,
+            size, font, color: textColor,
+          });
+        };
 
         setDiag('Insertando teléfono en la página...');
-
-        if (extra) {
-          const maxTextWidth = box.width * 0.86;
-          const smallStart = Math.max(9, Math.min(box.width * 0.11, box.height * 0.20));
-          const mainStart = Math.max(13, Math.min(box.width * 0.18, box.height * 0.34));
-          const smallFontSize = fitPdfFont(fontRegular, extra, smallStart, 7, maxTextWidth);
-          const mainFontSize = fitPdfFont(fontBold, phone, mainStart, 10, maxTextWidth);
-
-          const extraWidth = fontRegular.widthOfTextAtSize(extra, smallFontSize);
-          const phoneWidth = fontBold.widthOfTextAtSize(phone, mainFontSize);
-
-          page.drawText(extra, {
-            x: boxCenterX - (extraWidth / 2),
-            y: box.y + box.height * 0.66,
-            size: smallFontSize,
-            font: fontRegular,
-            color: textColor,
-          });
-
-          page.drawText(phone, {
-            x: boxCenterX - (phoneWidth / 2),
-            y: box.y + box.height * 0.16,
-            size: mainFontSize,
-            font: fontBold,
-            color: textColor,
-          });
-        } else {
-          const maxTextWidth = box.width * 0.88;
-          const mainStart = Math.max(13, Math.min(box.width * 0.20, box.height * 0.42));
-          const mainFontSize = fitPdfFont(fontBold, phone, mainStart, 10, maxTextWidth);
-          const phoneWidth = fontBold.widthOfTextAtSize(phone, mainFontSize);
-
-          page.drawText(phone, {
-            x: boxCenterX - (phoneWidth / 2),
-            y: box.y + (box.height - mainFontSize) / 2,
-            size: mainFontSize,
-            font: fontBold,
-            color: textColor,
-          });
-        }
+        if (m.extra) escribir(extra, fontRegular, m.extra.size, m.extra.centro);
+        escribir(phone, fontBold, m.phone.size, m.phone.centro);
       }
 
       setDiag('Guardando archivo final...');
@@ -1482,10 +1498,8 @@
     }
 
     // Render the PDF blob at 3× scale and export as JPG or PNG (max quality)
-    async function pdfBlobToImageBlob(pdfBlob, format) {
-      const arrayBuf = await pdfBlob.arrayBuffer();
-      const doc = await pdfjsLib.getDocument({ data: new Uint8Array(arrayBuf) }).promise;
-      const page = await doc.getPage(state.currentPage);
+    async function pdfBlobToImageBlob(doc, pageNum, format) {
+      const page = await doc.getPage(pageNum);
       const SCALE = 3; // 3× for print-quality output
       const vp = page.getViewport({ scale: SCALE });
       const offscreen = document.createElement('canvas');
@@ -1522,30 +1536,68 @@
 
     async function applyFormatToOutput(pdfBlob) {
       setDiag('Convirtiendo al formato seleccionado...');
-      let blob, ext;
-      if (selectedFormat === 'pdf') {
-        blob = pdfBlob;
-        ext = 'pdf';
-      } else {
-        blob = await pdfBlobToImageBlob(pdfBlob, selectedFormat);
-        ext = selectedFormat;
-      }
+      soltarUrlsExtra();
       if (state.outputUrl) URL.revokeObjectURL(state.outputUrl);
-      state.outputBlob = blob;
-      state.outputUrl = URL.createObjectURL(blob);
       const baseName = (state.file?.name || 'documento').replace(/\.[^.]+$/, '');
+
+      if (selectedFormat === 'pdf') {
+        state.outputBlob = pdfBlob;
+        state.outputUrl = URL.createObjectURL(pdfBlob);
+        downloadLink.href = state.outputUrl;
+        downloadLink.download = baseName + '_qr.pdf';
+        downloadLink.textContent = 'Descargar archivo';
+        openLink.href = state.outputUrl;
+        savePickerBtn.style.display = ('showSaveFilePicker' in window) ? 'block' : 'none';
+        setDiag('Archivo listo en formato PDF.');
+        setStatus('Archivo generado en PDF. Ya puedes descargarlo.', 'ok');
+        return;
+      }
+
+      // Un JPG o un PNG no pueden tener varias páginas, así que de un documento
+      // de dos caras salen dos imágenes, una por página.
+      const ext = selectedFormat;
+      const doc = await pdfjsLib.getDocument({ data: new Uint8Array(await pdfBlob.arrayBuffer()) }).promise;
+      const total = doc.numPages;
+      const blobs = [];
+      for (let n = 1; n <= total; n++) {
+        if (total > 1) setDiag('Convirtiendo página ' + n + ' de ' + total + '...');
+        blobs.push(await pdfBlobToImageBlob(doc, n, ext));
+      }
+
+      state.outputBlob = blobs[0];
+      state.outputUrl = URL.createObjectURL(blobs[0]);
       downloadLink.href = state.outputUrl;
-      downloadLink.download = baseName + '_qr.' + ext;
+      downloadLink.download = baseName + (total > 1 ? '_qr_pag1.' : '_qr.') + ext;
+      downloadLink.textContent = total > 1 ? 'Descargar página 1' : 'Descargar archivo';
       openLink.href = state.outputUrl;
-      setDiag('Archivo listo en formato ' + ext.toUpperCase() + '.');
-      setStatus('Archivo generado en ' + ext.toUpperCase() + '. Ya puedes descargarlo.', 'ok');
+      // Con varias páginas el selector del sistema solo guardaría la primera,
+      // así que se esconde y se usan los enlaces de abajo.
+      savePickerBtn.style.display = (total === 1 && 'showSaveFilePicker' in window) ? 'block' : 'none';
+
+      for (let n = 2; n <= total; n++) {
+        const url = URL.createObjectURL(blobs[n - 1]);
+        state.extraUrls.push(url);
+        const enlace = document.createElement('a');
+        enlace.className = 'action-link primary';
+        enlace.href = url;
+        enlace.download = baseName + '_qr_pag' + n + '.' + ext;
+        enlace.textContent = 'Descargar página ' + n;
+        extraDownloads.appendChild(enlace);
+      }
+
+      if (total > 1) {
+        setDiag('Listo: ' + total + ' imágenes ' + ext.toUpperCase() + ', una por página.');
+        setStatus('Se generaron ' + total + ' imágenes ' + ext.toUpperCase() + ', una por cada página. Descárgalas todas.', 'ok');
+      } else {
+        setDiag('Archivo listo en formato ' + ext.toUpperCase() + '.');
+        setStatus('Archivo generado en ' + ext.toUpperCase() + '. Ya puedes descargarlo.', 'ok');
+      }
     }
 
     async function presentOutput(blob){
       cleanupOutput();
       state.outputPdfBlob = blob; // always keep the PDF master
       resultBox.classList.add('show');
-      savePickerBtn.style.display = ('showSaveFilePicker' in window) ? 'block' : 'none';
       await applyFormatToOutput(blob);
     }
 
@@ -1613,20 +1665,21 @@
     });
 
     prevPage.addEventListener('click', async () => {
-      state.currentPage -= 1; exitCleanPreview(); updateSelectionText(); cleanupOutput(); await renderCurrentPage();
+      state.currentPage -= 1; exitCleanPreview(); state.target = 'qr'; refreshTargetUI(); updateSelectionText(); cleanupOutput(); await renderCurrentPage();
     });
     nextPage.addEventListener('click', async () => {
-      state.currentPage += 1; exitCleanPreview(); updateSelectionText(); cleanupOutput(); await renderCurrentPage();
+      state.currentPage += 1; exitCleanPreview(); state.target = 'qr'; refreshTargetUI(); updateSelectionText(); cleanupOutput(); await renderCurrentPage();
     });
     clearBtn.addEventListener('click', () => {
       exitCleanPreview();
+      const aqui = cajasDe(state.currentPage);
       const target = currentTarget();
-      if (target && state.selections[target]) {
-        state.selections[target] = null;
+      if (target && aqui[target]) {
+        aqui[target] = null;
         setDiag(target === 'qr' ? 'Recuadro del QR limpiado.' : 'Recuadro del teléfono limpiado.');
       } else {
-        state.selections = { qr: null, phone: null };
-        setDiag('Selección limpiada.');
+        state.selections[state.currentPage] = { qr: null, phone: null };
+        setDiag('Selección de esta página limpiada.');
       }
       redrawOverlay(); updateSelectionText(); updateButtons(); clearStatus(); cleanupOutput();
     });
@@ -1671,6 +1724,31 @@
       } catch (err) {
         setStatus('No se pudo ajustar la vista.\n' + (err?.message || String(err)), 'error');
       }
+    });
+
+    // Deja la página como recién abierta pero sin soltar el documento: los dos
+    // recuadros fuera, los campos vacíos y el resultado anterior descartado.
+    resetBtn.addEventListener('click', async () => {
+      state.selections = {};
+      state.target = 'qr';
+      state.cleanPreview = false;
+      state.qrImage = null;
+      state.qrPreviewFor = null;
+      state.qrPendingFor = null;
+
+      qrLink.value = '';
+      phoneNumber.value = '';
+      phoneExtra.value = '';
+      qrMargin.value = '4';
+      useQr.checked = true;
+      usePhone.checked = false;
+
+      cleanupOutput();
+      clearStatus();
+      refreshContentModeUI();
+
+      if (state.pdfjsDoc) await renderCurrentPage();
+      setDiag('Todo limpio. Dibuja el recuadro otra vez cuando quieras.');
     });
 
     qrMargin.addEventListener('input', () => { exitCleanPreview(); redrawOverlay(); });
