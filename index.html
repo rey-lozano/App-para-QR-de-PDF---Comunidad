@@ -819,7 +819,7 @@
       if (!modes.phone) return { qr: rect, phone: null };
       if (!modes.qr) return { qr: null, phone: rect };
 
-      if (rect.w >= rect.h) {
+      if (rect.w >= rect.h * 1.6) {
         const gap = rect.w * 0.04;
         const side = Math.max(0, Math.min(rect.h, (rect.w - gap) * 0.5));
         return {
@@ -833,6 +833,30 @@
         qr:    { x: rect.x + (rect.w - side) / 2, y: rect.y, w: side, h: side },
         phone: { x: rect.x, y: rect.y + side + gap, w: rect.w, h: Math.max(0, rect.h - side - gap) }
       };
+    }
+
+    // El QR de la vista previa se regenera solo en cuanto cambia el link. Si no,
+    // al escribir el teléfono el recuadro blanco tapaba toda la selección y
+    // parecía que el texto se metía dentro de la zona del QR.
+    function ensureQrPreview(){
+      const value = qrLink.value.trim();
+      if (!getModes().qr || !value) return;
+      if (state.qrImage && state.qrPreviewFor === value) return;
+      if (state.qrPendingFor === value) return;
+      state.qrPendingFor = value;
+      (async () => {
+        try {
+          const img = await canvasToImage(buildQrCanvas());
+          if (qrLink.value.trim() !== value) return; // el usuario siguió escribiendo
+          state.qrImage = img;
+          state.qrPreviewFor = value;
+          redrawOverlay();
+        } catch (err) {
+          // Link imposible de codificar (demasiado largo): se deja sin QR.
+        } finally {
+          if (state.qrPendingFor === value) state.qrPendingFor = null;
+        }
+      })();
     }
 
     function getPhoneDisplayValue(raw){
@@ -1002,7 +1026,8 @@
       if (!rect || rect.w < 3 || rect.h < 3) return;
 
       const regions = splitRegions(rect);
-      const showQr = !!(regions.qr && state.qrImage);
+      if (regions.qr) ensureQrPreview();
+      const showQr = !!(regions.qr && state.qrImage && qrLink.value.trim());
       const showPhone = !!(regions.phone && getPhoneDisplayValue(phoneNumber.value));
 
       if (showQr || showPhone) {
@@ -1184,13 +1209,16 @@
       const modes = getModes();
       if (!modes.qr) {
         state.qrImage = null;
+        state.qrPreviewFor = null;
         redrawOverlay();
         setDiag('Vista previa del teléfono generada correctamente.');
         return;
       }
       setDiag('Generando QR localmente...');
+      const value = qrLink.value.trim();
       const qrCanvas = buildQrCanvas();
       state.qrImage = await canvasToImage(qrCanvas);
+      state.qrPreviewFor = value;
       redrawOverlay();
       setDiag(modes.phone
         ? 'Vista previa del QR y del teléfono generada correctamente.'
