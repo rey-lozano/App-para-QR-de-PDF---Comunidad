@@ -104,6 +104,16 @@
   .barra{height:6px; border-radius:999px; background:rgba(255,255,255,.1); overflow:hidden; margin-top:12px}
   .barra span{display:block; height:100%; width:0; background:linear-gradient(90deg,var(--accent2),var(--accent)); transition:width .2s}
   .nota{font-size:12.5px; color:var(--muted); margin-top:8px}
+  .arch{
+    display:flex; align-items:center; gap:10px; padding:9px 12px; margin-top:8px;
+    border:1px solid var(--glass-border); border-radius:12px; background:rgba(0,0,0,.18);
+  }
+  .arch-num{
+    width:26px; height:26px; flex:0 0 auto; border-radius:8px; display:flex; align-items:center;
+    justify-content:center; font-size:12px; font-weight:700; background:rgba(95,141,255,.2); color:#a5c0ff;
+  }
+  .arch-nombre{flex:1; min-width:60px; font-size:13.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .arch-peso{font-size:12px; color:var(--muted); white-space:nowrap}
   a{color:var(--accent2)}
 </style>
 </head>
@@ -149,9 +159,14 @@
     <section class="card">
       <h2>Subir un diseño</h2>
       <div class="field">
-        <label for="archivo">Archivo</label>
-        <input id="archivo" type="file" accept="application/pdf,image/jpeg,image/png" />
-        <div class="nota">PDF, JPG o PNG. Las imágenes se convierten a PDF al subirlas. Máximo 50 MB.</div>
+        <label for="archivo">Archivo o archivos</label>
+        <input id="archivo" type="file" accept="application/pdf,image/jpeg,image/png" multiple />
+        <div class="nota">
+          PDF, JPG o PNG. <strong>Puedes elegir varios a la vez</strong>: se unen en un solo
+          documento y el orden de la lista es el orden de las páginas, así que para un
+          folleto pon primero la cara de delante y después la de detrás. Máximo 50 MB en total.
+        </div>
+        <div id="listaArchivos"></div>
       </div>
       <div class="row">
         <div class="field">
@@ -516,7 +531,7 @@
       const canvas = document.createElement('canvas');
       canvas.width = v.width; canvas.height = v.height;
       await page.render({ canvasContext: canvas.getContext('2d'), viewport: v }).promise;
-      caja.innerHTML = `<p class="nota">${doc.numPages} página(s) · <a href="${escapar(d.url)}" target="_blank" rel="noopener">abrir el archivo</a></p>`;
+      caja.innerHTML = `<p class="nota">${doc.numPages === 1 ? '1 página' : doc.numPages + ' páginas'} · <a href="${escapar(d.url)}" target="_blank" rel="noopener">abrir el archivo</a></p>`;
       caja.appendChild(canvas);
     } catch (err) {
       caja.innerHTML = '<p class="nota">No se pudo previsualizar: ' + escapar(err?.message || err) + '</p>';
@@ -536,14 +551,82 @@
     }
   });
 
+  // ------------------------------------------------- archivos elegidos
+  let archivos = [];
+
+  $('archivo').addEventListener('change', () => {
+    archivos = [...$('archivo').files];
+    if (archivos.length && !$('nombre').value.trim()) {
+      $('nombre').value = archivos[0].name.replace(/\.[^.]+$/, '');
+    }
+    pintarArchivos();
+  });
+
+  function pintarArchivos(){
+    const cont = $('listaArchivos');
+    if (!archivos.length) { cont.innerHTML = ''; return; }
+    cont.innerHTML = archivos.map((f, i) => `
+      <div class="arch">
+        <span class="arch-num">${i + 1}</span>
+        <span class="arch-nombre">${escapar(f.name)}</span>
+        <span class="arch-peso">${(f.size / 1048576).toFixed(1)} MB</span>
+        <div class="acciones">
+          <button class="btn-ghost mini" data-mov="-1" data-i="${i}" ${i === 0 ? 'disabled' : ''}>↑</button>
+          <button class="btn-ghost mini" data-mov="1" data-i="${i}" ${i === archivos.length - 1 ? 'disabled' : ''}>↓</button>
+          <button class="btn-danger mini" data-quitar="${i}">✕</button>
+        </div>
+      </div>`).join('')
+      + (archivos.length > 1
+          ? '<div class="nota">Se unirán en un solo documento, en este orden.</div>'
+          : '');
+  }
+
+  $('listaArchivos').addEventListener('click', (e) => {
+    const mover = e.target.closest('button[data-mov]');
+    const quitar = e.target.closest('button[data-quitar]');
+    if (mover) {
+      const i = Number(mover.dataset.i), j = i + Number(mover.dataset.mov);
+      if (j < 0 || j >= archivos.length) return;
+      [archivos[i], archivos[j]] = [archivos[j], archivos[i]];
+      pintarArchivos();
+    } else if (quitar) {
+      archivos.splice(Number(quitar.dataset.quitar), 1);
+      pintarArchivos();
+    }
+  });
+
+  // Une lo elegido en un solo PDF. Un único PDF se sube tal cual, sin
+  // reprocesarlo; las imágenes y las mezclas pasan por pdf-lib.
+  async function construirPdf(lista){
+    if (lista.length === 1 && lista[0].type === 'application/pdf') {
+      return new Uint8Array(await lista[0].arrayBuffer());
+    }
+    const { PDFDocument } = PDFLib;
+    const doc = await PDFDocument.create();
+    for (const f of lista) {
+      const bytes = new Uint8Array(await f.arrayBuffer());
+      if (f.type === 'application/pdf') {
+        const origen = await PDFDocument.load(bytes);
+        const paginas = await doc.copyPages(origen, origen.getPageIndices());
+        paginas.forEach(pag => doc.addPage(pag));
+      } else if (f.type === 'image/jpeg' || f.type === 'image/png') {
+        const img = f.type === 'image/jpeg' ? await doc.embedJpg(bytes) : await doc.embedPng(bytes);
+        const pag = doc.addPage([img.width, img.height]);
+        pag.drawImage(img, { x: 0, y: 0, width: img.width, height: img.height });
+      } else {
+        throw new Error('«' + f.name + '» no es PDF, JPG ni PNG.');
+      }
+    }
+    return await doc.save();
+  }
+
   // -------------------------------------------------------------- subida
   $('subirBtn').addEventListener('click', async () => {
     limpiarAviso();
-    const file = $('archivo').files?.[0];
-    if (!file) return aviso('Elige primero un archivo.', 'bad');
+    if (!archivos.length) return aviso('Elige primero al menos un archivo.', 'bad');
 
     let categoriaId = $('categoria').value;
-    const nombre = $('nombre').value.trim() || file.name.replace(/\.[^.]+$/, '');
+    const nombre = $('nombre').value.trim() || archivos[0].name.replace(/\.[^.]+$/, '');
 
     const btn = $('subirBtn');
     btn.disabled = true;
@@ -563,8 +646,9 @@
       }
       $('barra').style.width = '30%';
 
-      // El generador carga siempre PDF, así que las imágenes se convierten aquí.
-      const bytes = file.type.startsWith('image/') ? await imagenAPdf(file) : new Uint8Array(await file.arrayBuffer());
+      // El generador carga siempre PDF: aquí se convierten las imágenes y se
+      // unen las varias caras en un único documento.
+      const bytes = await construirPdf(archivos);
       $('barra').style.width = '55%';
 
       const ruta = crypto.randomUUID() + '.pdf';
@@ -586,6 +670,7 @@
       $('barra').style.width = '100%';
 
       $('archivo').value = ''; $('nombre').value = ''; $('nuevaCat').value = '';
+      archivos = []; pintarArchivos();
       await cargarTodo();
       aviso('«' + nombre + '» ya está en la galería.');
     } catch (err) {
@@ -596,16 +681,6 @@
       setTimeout(() => { $('barraWrap').classList.add('hidden'); $('barra').style.width = '0'; }, 600);
     }
   });
-
-  async function imagenAPdf(file){
-    const { PDFDocument } = PDFLib;
-    const bytes = new Uint8Array(await file.arrayBuffer());
-    const doc = await PDFDocument.create();
-    const img = file.type === 'image/jpeg' ? await doc.embedJpg(bytes) : await doc.embedPng(bytes);
-    const page = doc.addPage([img.width, img.height]);
-    page.drawImage(img, { x: 0, y: 0, width: img.width, height: img.height });
-    return await doc.save();
-  }
 
   arrancar();
 })();

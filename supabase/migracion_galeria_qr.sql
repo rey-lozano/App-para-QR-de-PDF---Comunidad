@@ -65,6 +65,17 @@ create policy "escritura admin" on public.disenos_qr
   for all to authenticated
   using (public.is_admin()) with check (public.is_admin());
 
+-- --------------------------------------------------------------- permisos
+-- RLS decide QUÉ filas ve cada rol, pero el rol necesita además el permiso
+-- base sobre la tabla. Mismo reparto que settings y commission_rates.
+grant select
+  on public.disenos_qr_categorias, public.disenos_qr
+  to anon;
+
+grant select, insert, update, delete
+  on public.disenos_qr_categorias, public.disenos_qr
+  to authenticated;
+
 -- --------------------------------------------------------------- storage
 -- Bucket público: el generador descarga los PDF sin sesión.
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
