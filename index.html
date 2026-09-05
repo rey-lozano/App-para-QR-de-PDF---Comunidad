@@ -845,11 +845,38 @@
     }
 
     // Guarda una caja (en coordenadas del canvas actual) para un elemento.
+    // El teléfono se estampa como texto suelto sobre el diseño, sin recuadro
+    // blanco, así que hay que mirar qué hay debajo para que se lea: sobre un
+    // botón oscuro va en blanco, sobre fondo claro en azul marino.
+    const colorProbe = document.createElement('canvas');
+    colorProbe.width = 8; colorProbe.height = 8;
+    const colorProbeCtx = colorProbe.getContext('2d', { willReadFrequently: true });
+
+    function isDarkUnder(box){
+      const x = Math.max(0, Math.round(box.x)), y = Math.max(0, Math.round(box.y));
+      const w = Math.max(1, Math.min(pdfCanvas.width - x, Math.round(box.w)));
+      const h = Math.max(1, Math.min(pdfCanvas.height - y, Math.round(box.h)));
+      if (!pdfCanvas.width || !pdfCanvas.height) return false;
+      try {
+        colorProbeCtx.clearRect(0, 0, 8, 8);
+        colorProbeCtx.drawImage(pdfCanvas, x, y, w, h, 0, 0, 8, 8);
+        const d = colorProbeCtx.getImageData(0, 0, 8, 8).data;
+        let lum = 0;
+        for (let i = 0; i < d.length; i += 4) {
+          lum += (0.2126 * d[i] + 0.7152 * d[i+1] + 0.0722 * d[i+2]) / 255;
+        }
+        return (lum / (d.length / 4)) < 0.55;
+      } catch (err) {
+        return false;
+      }
+    }
+
     function setBox(kind, rect){
       state.selections[kind] = rect ? {
         page: state.currentPage,
         x: rect.x, y: rect.y, w: rect.w, h: rect.h,
-        cw: state.rendered.width, ch: state.rendered.height
+        cw: state.rendered.width, ch: state.rendered.height,
+        dark: kind === 'phone' ? isDarkUnder(rect) : false
       } : null;
     }
 
@@ -933,7 +960,7 @@
       return minSize;
     }
 
-    function drawPhonePreview(rect){
+    function drawPhonePreview(rect, dark){
       const phone = getPhoneDisplayValue(phoneNumber.value);
       if (!phone || rect.w < 3 || rect.h < 3) return;
       overlayCtx.save();
@@ -941,7 +968,7 @@
       const cx = rect.x + rect.w / 2;
       const extra = phoneExtra.value.trim();
       const availableWidth = rect.w * 0.86;
-      const color = '#0b1530';
+      const color = dark ? '#ffffff' : '#0b1530';
 
       overlayCtx.fillStyle = color;
       overlayCtx.textAlign = 'center';
@@ -1104,9 +1131,16 @@
           : !!getPhoneDisplayValue(phoneNumber.value);
 
         if (pinta) {
-          overlayCtx.fillStyle = '#ffffff';
-          overlayCtx.fillRect(box.x, box.y, box.w, box.h);
-          if (kind === 'qr') drawQrInBox(box); else drawPhonePreview(box);
+          if (kind === 'qr') {
+            // El QR sí necesita su fondo blanco para poder escanearse.
+            overlayCtx.fillStyle = '#ffffff';
+            overlayCtx.fillRect(box.x, box.y, box.w, box.h);
+            drawQrInBox(box);
+          } else {
+            const sel = state.selections.phone;
+            const dark = dragRect && kind === target ? isDarkUnder(box) : !!(sel && sel.dark);
+            drawPhonePreview(box, dark);
+          }
         }
 
         // La caja activa se resalta; la otra queda con un borde discreto para
@@ -1353,9 +1387,9 @@
           width: (sel.w / sel.cw) * pdfWidth,
           height: (sel.h / sel.ch) * pdfHeight
         };
-        page.drawRectangle({ x: box.x, y: box.y, width: box.width, height: box.height, color: rgb(1,1,1) });
-
         if (kind === 'qr') {
+          page.drawRectangle({ x: box.x, y: box.y, width: box.width, height: box.height, color: rgb(1,1,1) });
+
           setDiag('Generando imagen QR local...');
           const qrCanvas = buildQrCanvas();
           const pngBytes = dataUrlToUint8Array(qrCanvas.toDataURL('image/png'));
@@ -1379,6 +1413,7 @@
 
         const extra = phoneExtra.value.trim();
         const boxCenterX = box.x + box.width / 2;
+        const textColor = sel.dark ? rgb(1, 1, 1) : rgb(0.04, 0.08, 0.19);
 
         setDiag('Insertando teléfono en la página...');
 
@@ -1397,7 +1432,7 @@
             y: box.y + box.height * 0.66,
             size: smallFontSize,
             font: fontRegular,
-            color: rgb(0.04, 0.08, 0.19),
+            color: textColor,
           });
 
           page.drawText(phone, {
@@ -1405,7 +1440,7 @@
             y: box.y + box.height * 0.16,
             size: mainFontSize,
             font: fontBold,
-            color: rgb(0.04, 0.08, 0.19),
+            color: textColor,
           });
         } else {
           const maxTextWidth = box.width * 0.88;
@@ -1418,7 +1453,7 @@
             y: box.y + (box.height - mainFontSize) / 2,
             size: mainFontSize,
             font: fontBold,
-            color: rgb(0.04, 0.08, 0.19),
+            color: textColor,
           });
         }
       }
