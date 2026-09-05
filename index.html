@@ -1692,6 +1692,52 @@
 
     refreshContentModeUI();
 
+    // ------------------------------------------------------------ galería
+    // Las opciones escritas a mano en el HTML son el plan B: si Supabase no
+    // responde, la galería de siempre sigue funcionando igual.
+    const GALERIA = {
+      url: 'https://ebkbpinafabnyfllswgb.supabase.co',
+      // Clave anónima (pública por diseño): solo puede leer lo visible.
+      key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVia2JwaW5hZmFibnlmbGxzd2diIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3NjYyMDIsImV4cCI6MjA5OTM0MjIwMn0.nQvpL9m62hyh8OR0Fpf9vFEfXCxw0HKnN3j-QUGe_Bs'
+    };
+
+    async function cargarGaleriaRemota(){
+      try {
+        const cab = { apikey: GALERIA.key, Authorization: 'Bearer ' + GALERIA.key };
+        const [rc, rd] = await Promise.all([
+          fetch(GALERIA.url + '/rest/v1/disenos_qr_categorias?select=id,nombre&visible=is.true&order=orden', { headers: cab }),
+          fetch(GALERIA.url + '/rest/v1/disenos_qr?select=categoria_id,nombre,url&visible=is.true&order=orden', { headers: cab })
+        ]);
+        if (!rc.ok || !rd.ok) return;
+        const cats = await rc.json(), items = await rd.json();
+        if (!Array.isArray(cats) || !Array.isArray(items) || !items.length) return;
+
+        const frag = document.createDocumentFragment();
+        for (const c of cats) {
+          const suyos = items.filter(i => i.categoria_id === c.id);
+          if (!suyos.length) continue;
+          const grupo = document.createElement('optgroup');
+          grupo.label = c.nombre;
+          for (const it of suyos) {
+            const op = document.createElement('option');
+            op.value = it.url;
+            op.textContent = it.nombre;
+            grupo.appendChild(op);
+          }
+          frag.appendChild(grupo);
+        }
+        if (!frag.childElementCount) return;
+        // Si el usuario ya eligió un diseño, no le cambiamos el desplegable debajo.
+        if (pdfSource.value !== 'custom') return;
+        pdfSource.querySelectorAll('optgroup').forEach(g => g.remove());
+        pdfSource.appendChild(frag);
+      } catch (err) {
+        // Sin red o sin Supabase: nos quedamos con la lista del HTML.
+      }
+    }
+
+    cargarGaleriaRemota();
+
 
 
 

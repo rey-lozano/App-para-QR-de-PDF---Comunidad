@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex, nofollow" />
+<title>Panel de diseños · Integrador QR</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#081225; --text:#e9eefc; --muted:#a8b4d6; --accent:#5f8dff; --accent2:#7da5ff;
+    --glass-bg:rgba(255,255,255,0.05); --glass-border:rgba(255,255,255,0.12);
+    --ok:#4ade80; --warn:#fbbf24; --bad:#f87171;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; min-height:100vh; background:
+      radial-gradient(1200px 700px at 12% -10%, #14224a 0%, transparent 60%),
+      radial-gradient(900px 600px at 110% 10%, #1b2a55 0%, transparent 55%), var(--bg);
+    color:var(--text); font-family:Inter, system-ui, -apple-system, Segoe UI, Arial, sans-serif;
+    font-size:15px; line-height:1.5;
+  }
+  .wrap{max-width:1020px; margin:0 auto; padding:28px 20px 80px}
+  .card{
+    background:linear-gradient(180deg, var(--glass-bg), rgba(255,255,255,0.01));
+    border:1px solid var(--glass-border); border-radius:22px; padding:22px; margin-bottom:20px;
+    box-shadow:0 20px 60px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.08);
+  }
+  h1{font-size:24px; margin:0 0 4px}
+  h2{font-size:17px; margin:0 0 16px; letter-spacing:.2px}
+  .sub{color:var(--muted); font-size:14px; margin:0 0 24px}
+  label{display:block; font-size:13px; font-weight:600; color:#dbe4ff; margin-bottom:8px; letter-spacing:.3px}
+  input, select{
+    width:100%; background:rgba(0,0,0,.22); color:var(--text); border:1px solid var(--glass-border);
+    border-radius:12px; padding:12px 14px; font-size:15px; font-family:inherit; outline:none;
+    transition:all .2s ease;
+  }
+  input:focus, select:focus{border-color:var(--accent); background:rgba(11,21,48,.8); box-shadow:0 0 0 4px rgba(95,141,255,.15)}
+  input[type=file]::file-selector-button{
+    background:var(--glass-bg); border:1px solid var(--glass-border); color:#fff; border-radius:8px;
+    padding:6px 12px; margin-right:12px; cursor:pointer; font-weight:500; font-family:inherit;
+  }
+  .field{margin-bottom:16px}
+  .row{display:grid; grid-template-columns:1fr 1fr; gap:14px}
+  @media (max-width:640px){ .row{grid-template-columns:1fr} }
+  .pw{position:relative}
+  .pw input{padding-right:52px}
+  .pw button{
+    position:absolute; right:6px; top:50%; transform:translateY(-50%); width:40px; padding:6px;
+    background:transparent; border:none; font-size:20px; cursor:pointer; line-height:1;
+  }
+  button{
+    appearance:none; border:none; border-radius:12px; padding:12px 18px; font-size:15px; font-weight:600;
+    font-family:inherit; cursor:pointer; transition:all .2s ease; color:#fff;
+  }
+  button:disabled{opacity:.5; cursor:not-allowed}
+  .btn-primary{background:linear-gradient(180deg, var(--accent2), var(--accent)); width:100%}
+  .btn-primary:not(:disabled):hover{filter:brightness(1.1)}
+  .btn-ghost{background:rgba(255,255,255,.06); border:1px solid var(--glass-border); color:#dbe4ff}
+  .btn-ghost:not(:disabled):hover{background:rgba(255,255,255,.12)}
+  .btn-danger{background:rgba(248,113,113,.15); border:1px solid rgba(248,113,113,.4); color:#fca5a5}
+  .btn-danger:not(:disabled):hover{background:rgba(248,113,113,.25)}
+  .mini{padding:7px 11px; font-size:13px; border-radius:9px}
+  .topbar{display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:20px}
+  .topbar .who{font-size:13px; color:var(--muted)}
+  .hidden{display:none !important}
+  .status{border-radius:12px; padding:12px 14px; font-size:14px; margin-bottom:16px; white-space:pre-wrap}
+  .status.ok{background:rgba(74,222,128,.12); border:1px solid rgba(74,222,128,.35); color:#bbf7d0}
+  .status.bad{background:rgba(248,113,113,.12); border:1px solid rgba(248,113,113,.35); color:#fecaca}
+  .cat{border:1px solid var(--glass-border); border-radius:16px; margin-bottom:14px; overflow:hidden}
+  .cat-head{
+    display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+    padding:12px 14px; background:rgba(255,255,255,.04);
+  }
+  .cat-name{font-weight:700; font-size:15px; flex:1; min-width:140px}
+  .cat-count{font-size:12px; color:var(--muted); font-weight:500}
+  .item{
+    display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+    padding:11px 14px; border-top:1px solid rgba(255,255,255,.07);
+  }
+  .item-name{flex:1; min-width:160px; font-size:14px}
+  .item.oculto .item-name{opacity:.5; text-decoration:line-through}
+  .tag{font-size:11px; font-weight:600; padding:3px 8px; border-radius:999px; letter-spacing:.3px}
+  .tag-repo{background:rgba(251,191,36,.15); color:#fcd34d; border:1px solid rgba(251,191,36,.3)}
+  .tag-storage{background:rgba(95,141,255,.15); color:#a5c0ff; border:1px solid rgba(95,141,255,.3)}
+  .tag-oculto{background:rgba(255,255,255,.08); color:var(--muted); border:1px solid var(--glass-border)}
+  .acciones{display:flex; gap:6px; flex-wrap:wrap}
+  .vacio{padding:14px; color:var(--muted); font-size:14px; border-top:1px solid rgba(255,255,255,.07)}
+  .previsualizacion{padding:0 14px 14px; border-top:1px solid rgba(255,255,255,.07)}
+  .previsualizacion canvas{max-width:100%; border-radius:10px; background:#fff; margin-top:12px}
+  .overlay{
+    position:fixed; inset:0; background:rgba(4,9,22,.75); backdrop-filter:blur(4px);
+    display:flex; align-items:center; justify-content:center; padding:20px; z-index:50;
+  }
+  .modal{
+    background:#0d1730; border:1px solid var(--glass-border); border-radius:20px; padding:24px;
+    max-width:440px; width:100%; box-shadow:0 30px 80px rgba(0,0,0,.6);
+  }
+  .modal h3{margin:0 0 10px; font-size:18px}
+  .modal p{margin:0 0 18px; color:var(--muted); font-size:14px}
+  .modal .acciones{justify-content:flex-end; margin-top:18px}
+  .barra{height:6px; border-radius:999px; background:rgba(255,255,255,.1); overflow:hidden; margin-top:12px}
+  .barra span{display:block; height:100%; width:0; background:linear-gradient(90deg,var(--accent2),var(--accent)); transition:width .2s}
+  .nota{font-size:12.5px; color:var(--muted); margin-top:8px}
+  a{color:var(--accent2)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="topbar">
+    <div>
+      <h1>Panel de diseños</h1>
+      <p class="sub" style="margin:2px 0 0">Galería del Integrador QR · <a href="index.html">volver al generador</a></p>
+    </div>
+    <div id="sesionBox" class="hidden">
+      <span class="who" id="quien"></span>
+      <button class="btn-ghost mini" id="salirBtn" style="margin-left:10px">Cerrar sesión</button>
+    </div>
+  </div>
+
+  <div id="statusBox" class="status hidden"></div>
+
+  <!-- ------------------------------------------------------------ login -->
+  <section class="card" id="loginView">
+    <h2>Entra con tu cuenta</h2>
+    <p class="sub">Es la misma cuenta del panel de emprenYA. Solo entran los usuarios con rol de administrador.</p>
+    <form id="loginForm">
+      <div class="field">
+        <label for="email">Correo</label>
+        <input id="email" type="email" autocomplete="username" required />
+      </div>
+      <div class="field">
+        <label for="password">Contraseña</label>
+        <div class="pw">
+          <input id="password" type="password" autocomplete="current-password" required />
+          <button type="button" id="verPass" aria-label="Mostrar u ocultar la contraseña">🙈</button>
+        </div>
+      </div>
+      <button class="btn-primary" id="entrarBtn" type="submit">Entrar</button>
+    </form>
+  </section>
+
+  <!-- ------------------------------------------------------------ panel -->
+  <div id="panelView" class="hidden">
+
+    <section class="card">
+      <h2>Subir un diseño</h2>
+      <div class="field">
+        <label for="archivo">Archivo</label>
+        <input id="archivo" type="file" accept="application/pdf,image/jpeg,image/png" />
+        <div class="nota">PDF, JPG o PNG. Las imágenes se convierten a PDF al subirlas. Máximo 50 MB.</div>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label for="nombre">Nombre en la galería</label>
+          <input id="nombre" type="text" placeholder="Ej: NATURKIN Tienda A4" />
+        </div>
+        <div class="field">
+          <label for="categoria">Categoría</label>
+          <select id="categoria"></select>
+        </div>
+      </div>
+      <div class="field hidden" id="nuevaCatWrap">
+        <label for="nuevaCat">Nombre de la categoría nueva</label>
+        <input id="nuevaCat" type="text" placeholder="Ej: Flyers NATURKIN" />
+      </div>
+      <button class="btn-primary" id="subirBtn">Subir a la galería</button>
+      <div class="barra hidden" id="barraWrap"><span id="barra"></span></div>
+    </section>
+
+    <section class="card">
+      <h2>Lo que ya hay en la galería</h2>
+      <div id="lista"></div>
+      <button class="btn-ghost" id="nuevaCategoriaBtn" style="margin-top:6px">➕ Crear categoría</button>
+    </section>
+
+  </div>
+</div>
+
+<!-- modal reutilizable (nada de prompt/alert del navegador) -->
+<div class="overlay hidden" id="modalOverlay">
+  <div class="modal">
+    <h3 id="modalTitulo"></h3>
+    <p id="modalTexto"></p>
+    <input id="modalInput" type="text" class="hidden" />
+    <div class="acciones">
+      <button class="btn-ghost" id="modalCancelar">Cancelar</button>
+      <button class="btn-primary" id="modalAceptar" style="width:auto">Aceptar</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
+<script>
+(() => {
+  'use strict';
+
+  const SUPABASE_URL = 'https://ebkbpinafabnyfllswgb.supabase.co';
+  // Clave anónima: es pública por diseño, quien manda es RLS (solo is_admin() escribe).
+  const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVia2JwaW5hZmFibnlmbGxzd2diIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3NjYyMDIsImV4cCI6MjA5OTM0MjIwMn0.nQvpL9m62hyh8OR0Fpf9vFEfXCxw0HKnN3j-QUGe_Bs';
+  const BUCKET = 'disenos-qr';
+
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+  if (window.pdfjsLib) {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  }
+
+  const $ = id => document.getElementById(id);
+  let categorias = [], disenos = [];
+
+  // ------------------------------------------------------------- avisos
+  function aviso(texto, tipo = 'ok'){
+    const box = $('statusBox');
+    box.textContent = texto;
+    box.className = 'status ' + (tipo === 'bad' ? 'bad' : 'ok');
+    box.classList.remove('hidden');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+  function limpiarAviso(){ $('statusBox').classList.add('hidden'); }
+
+  // Modal propio: el navegador no pinta prompt() ni confirm() aquí.
+  function preguntar({ titulo, texto, valor = null, aceptar = 'Aceptar', peligro = false }){
+    return new Promise(resolve => {
+      $('modalTitulo').textContent = titulo;
+      $('modalTexto').textContent = texto || '';
+      $('modalTexto').classList.toggle('hidden', !texto);
+      const input = $('modalInput');
+      const pideTexto = valor !== null;
+      input.classList.toggle('hidden', !pideTexto);
+      if (pideTexto) input.value = valor;
+      const ok = $('modalAceptar');
+      ok.textContent = aceptar;
+      ok.className = peligro ? 'btn-danger' : 'btn-primary';
+      ok.style.width = 'auto';
+      $('modalOverlay').classList.remove('hidden');
+      if (pideTexto) setTimeout(() => input.focus(), 50);
+
+      const cerrar = (res) => {
+        $('modalOverlay').classList.add('hidden');
+        ok.removeEventListener('click', alAceptar);
+        $('modalCancelar').removeEventListener('click', alCancelar);
+        input.removeEventListener('keydown', alTeclear);
+        resolve(res);
+      };
+      const alAceptar = () => cerrar(pideTexto ? input.value.trim() : true);
+      const alCancelar = () => cerrar(null);
+      const alTeclear = e => { if (e.key === 'Enter') { e.preventDefault(); alAceptar(); } };
+      ok.addEventListener('click', alAceptar);
+      $('modalCancelar').addEventListener('click', alCancelar);
+      input.addEventListener('keydown', alTeclear);
+    });
+  }
+
+  // -------------------------------------------------------------- sesión
+  $('verPass').addEventListener('click', () => {
+    const campo = $('password');
+    const oculto = campo.type === 'password';
+    campo.type = oculto ? 'text' : 'password';
+    $('verPass').textContent = oculto ? '🐵' : '🙈';
+  });
+
+  $('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    limpiarAviso();
+    $('entrarBtn').disabled = true;
+    $('entrarBtn').textContent = 'Entrando...';
+    try {
+      const { error } = await sb.auth.signInWithPassword({
+        email: $('email').value.trim(),
+        password: $('password').value
+      });
+      if (error) throw error;
+      await arrancar();
+    } catch (err) {
+      aviso('No se pudo entrar.\n' + (err?.message || err), 'bad');
+    } finally {
+      $('entrarBtn').disabled = false;
+      $('entrarBtn').textContent = 'Entrar';
+    }
+  });
+
+  $('salirBtn').addEventListener('click', async () => {
+    await sb.auth.signOut();
+    location.reload();
+  });
+
+  async function esAdmin(userId){
+    const { data, error } = await sb.from('profiles').select('roles').eq('id', userId).maybeSingle();
+    if (error || !data) return false;
+    return Array.isArray(data.roles) && data.roles.includes('admin');
+  }
+
+  async function arrancar(){
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) {
+      $('loginView').classList.remove('hidden');
+      $('panelView').classList.add('hidden');
+      $('sesionBox').classList.add('hidden');
+      return;
+    }
+    if (!(await esAdmin(session.user.id))) {
+      await sb.auth.signOut();
+      aviso('Esa cuenta no tiene rol de administrador, así que no puede tocar la galería.', 'bad');
+      $('loginView').classList.remove('hidden');
+      return;
+    }
+    $('quien').textContent = session.user.email;
+    $('sesionBox').classList.remove('hidden');
+    $('loginView').classList.add('hidden');
+    $('panelView').classList.remove('hidden');
+    limpiarAviso();
+    await cargarTodo();
+  }
+
+  // --------------------------------------------------------------- datos
+  async function cargarTodo(){
+    const [cats, dis] = await Promise.all([
+      sb.from('disenos_qr_categorias').select('*').order('orden'),
+      sb.from('disenos_qr').select('*').order('orden')
+    ]);
+    if (cats.error) { aviso('No se pudieron leer las categorías.\n' + cats.error.message, 'bad'); return; }
+    if (dis.error)  { aviso('No se pudieron leer los diseños.\n' + dis.error.message, 'bad'); return; }
+    categorias = cats.data || [];
+    disenos = dis.data || [];
+    pintarSelect();
+    pintarLista();
+  }
+
+  function pintarSelect(){
+    const sel = $('categoria');
+    const previo = sel.value;
+    sel.innerHTML = categorias.map(c => `<option value="${c.id}">${escapar(c.nombre)}</option>`).join('')
+      + '<option value="__nueva">➕ Crear una categoría nueva...</option>';
+    if (previo) sel.value = previo;
+    $('nuevaCatWrap').classList.toggle('hidden', sel.value !== '__nueva');
+  }
+
+  $('categoria').addEventListener('change', () => {
+    $('nuevaCatWrap').classList.toggle('hidden', $('categoria').value !== '__nueva');
+  });
+
+  function escapar(s){
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  function pintarLista(){
+    const cont = $('lista');
+    if (!categorias.length) {
+      cont.innerHTML = '<p class="sub">Todavía no hay ninguna categoría. Crea la primera abajo.</p>';
+      return;
+    }
+    cont.innerHTML = categorias.map(cat => {
+      const suyos = disenos.filter(d => d.categoria_id === cat.id).sort((a,b) => a.orden - b.orden);
+      const items = suyos.length ? suyos.map((d, i) => `
+        <div class="item ${d.visible ? '' : 'oculto'}">
+          <span class="item-name">${escapar(d.nombre)}</span>
+          <span class="tag ${d.origen === 'repo' ? 'tag-repo' : 'tag-storage'}">${d.origen === 'repo' ? 'en el repo' : 'subido'}</span>
+          ${d.visible ? '' : '<span class="tag tag-oculto">oculto</span>'}
+          <div class="acciones">
+            <button class="btn-ghost mini" data-accion="ver" data-id="${d.id}">Ver</button>
+            <button class="btn-ghost mini" data-accion="subir-orden" data-id="${d.id}" ${i === 0 ? 'disabled' : ''}>↑</button>
+            <button class="btn-ghost mini" data-accion="bajar-orden" data-id="${d.id}" ${i === suyos.length-1 ? 'disabled' : ''}>↓</button>
+            <button class="btn-ghost mini" data-accion="renombrar" data-id="${d.id}">Renombrar</button>
+            <button class="btn-ghost mini" data-accion="mover" data-id="${d.id}">Mover</button>
+            <button class="btn-ghost mini" data-accion="visible" data-id="${d.id}">${d.visible ? 'Ocultar' : 'Mostrar'}</button>
+            <button class="btn-danger mini" data-accion="borrar" data-id="${d.id}">Borrar</button>
+          </div>
+        </div>
+        <div class="previsualizacion hidden" id="prev-${d.id}"></div>
+      `).join('') : '<div class="vacio">Esta categoría está vacía.</div>';
+
+      return `
+        <div class="cat">
+          <div class="cat-head">
+            <span class="cat-name">${escapar(cat.nombre)}</span>
+            <span class="cat-count">${suyos.length} diseño${suyos.length === 1 ? '' : 's'}</span>
+            ${cat.visible ? '' : '<span class="tag tag-oculto">oculta</span>'}
+            <div class="acciones">
+              <button class="btn-ghost mini" data-accion="cat-renombrar" data-id="${cat.id}">Renombrar</button>
+              <button class="btn-ghost mini" data-accion="cat-visible" data-id="${cat.id}">${cat.visible ? 'Ocultar' : 'Mostrar'}</button>
+              <button class="btn-danger mini" data-accion="cat-borrar" data-id="${cat.id}">Borrar</button>
+            </div>
+          </div>
+          ${items}
+        </div>`;
+    }).join('');
+  }
+
+  // ------------------------------------------------------------ acciones
+  $('lista').addEventListener('click', async (e) => {
+    const btn = e.target.closest('button[data-accion]');
+    if (!btn) return;
+    const { accion, id } = btn.dataset;
+    btn.disabled = true;
+    try {
+      await ejecutar(accion, id);
+    } catch (err) {
+      aviso('No se pudo completar la acción.\n' + (err?.message || err), 'bad');
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  async function ejecutar(accion, id){
+    const d = disenos.find(x => x.id === id);
+    const cat = categorias.find(x => x.id === id);
+
+    if (accion === 'ver') return verDiseno(d);
+
+    if (accion === 'renombrar') {
+      const nombre = await preguntar({ titulo: 'Renombrar diseño', valor: d.nombre });
+      if (!nombre) return;
+      await guardar(sb.from('disenos_qr').update({ nombre }).eq('id', id));
+      return aviso('Nombre cambiado.');
+    }
+
+    if (accion === 'visible') {
+      await guardar(sb.from('disenos_qr').update({ visible: !d.visible }).eq('id', id));
+      return aviso(d.visible ? 'Diseño oculto en la galería.' : 'Diseño visible en la galería.');
+    }
+
+    if (accion === 'mover') {
+      const otras = categorias.filter(c => c.id !== d.categoria_id);
+      if (!otras.length) return aviso('No hay otra categoría a la que moverlo.', 'bad');
+      const nombre = await preguntar({
+        titulo: 'Mover a otra categoría',
+        texto: 'Escribe el nombre exacto de la categoría destino: ' + otras.map(c => c.nombre).join(' · '),
+        valor: otras[0].nombre
+      });
+      if (!nombre) return;
+      const destino = categorias.find(c => c.nombre.toLowerCase() === nombre.toLowerCase());
+      if (!destino) return aviso('No existe ninguna categoría con ese nombre.', 'bad');
+      const orden = 1 + Math.max(0, ...disenos.filter(x => x.categoria_id === destino.id).map(x => x.orden));
+      await guardar(sb.from('disenos_qr').update({ categoria_id: destino.id, orden }).eq('id', id));
+      return aviso('Movido a «' + destino.nombre + '».');
+    }
+
+    if (accion === 'subir-orden' || accion === 'bajar-orden') {
+      const hermanos = disenos.filter(x => x.categoria_id === d.categoria_id).sort((a,b) => a.orden - b.orden);
+      const i = hermanos.findIndex(x => x.id === id);
+      const j = accion === 'subir-orden' ? i - 1 : i + 1;
+      if (j < 0 || j >= hermanos.length) return;
+      const otro = hermanos[j];
+      await guardar(sb.from('disenos_qr').update({ orden: otro.orden }).eq('id', d.id));
+      await guardar(sb.from('disenos_qr').update({ orden: d.orden }).eq('id', otro.id));
+      return;
+    }
+
+    if (accion === 'borrar') {
+      const ok = await preguntar({
+        titulo: 'Borrar «' + d.nombre + '»',
+        texto: d.origen === 'repo'
+          ? 'Desaparece de la galería. El PDF seguirá en la carpeta pdf/ del repositorio.'
+          : 'Se borra de la galería y también el archivo subido. No hay vuelta atrás.',
+        aceptar: 'Borrar', peligro: true
+      });
+      if (!ok) return;
+      if (d.origen === 'storage' && d.storage_path) {
+        const { error } = await sb.storage.from(BUCKET).remove([d.storage_path]);
+        if (error) throw error;
+      }
+      await guardar(sb.from('disenos_qr').delete().eq('id', id));
+      return aviso('Diseño borrado.');
+    }
+
+    if (accion === 'cat-renombrar') {
+      const nombre = await preguntar({ titulo: 'Renombrar categoría', valor: cat.nombre });
+      if (!nombre) return;
+      await guardar(sb.from('disenos_qr_categorias').update({ nombre }).eq('id', id));
+      return aviso('Categoría renombrada.');
+    }
+
+    if (accion === 'cat-visible') {
+      await guardar(sb.from('disenos_qr_categorias').update({ visible: !cat.visible }).eq('id', id));
+      return aviso(cat.visible ? 'Categoría oculta.' : 'Categoría visible.');
+    }
+
+    if (accion === 'cat-borrar') {
+      const dentro = disenos.filter(x => x.categoria_id === id);
+      if (dentro.length) {
+        return aviso('«' + cat.nombre + '» tiene ' + dentro.length + ' diseño(s) dentro. Muévelos o bórralos primero.', 'bad');
+      }
+      const ok = await preguntar({ titulo: 'Borrar «' + cat.nombre + '»', texto: 'La categoría está vacía, se puede borrar sin perder nada.', aceptar: 'Borrar', peligro: true });
+      if (!ok) return;
+      await guardar(sb.from('disenos_qr_categorias').delete().eq('id', id));
+      return aviso('Categoría borrada.');
+    }
+  }
+
+  async function guardar(consulta){
+    const { error } = await consulta;
+    if (error) throw error;
+    await cargarTodo();
+  }
+
+  // La miniatura se genera solo al pulsar «Ver»: los PDF pesan 3-4 MB y no
+  // tiene sentido descargarlos todos al abrir el panel.
+  async function verDiseno(d){
+    const caja = $('prev-' + d.id);
+    if (!caja.classList.contains('hidden')) { caja.classList.add('hidden'); caja.innerHTML = ''; return; }
+    caja.classList.remove('hidden');
+    caja.innerHTML = '<p class="nota">Cargando vista previa...</p>';
+    try {
+      const resp = await fetch(d.url);
+      if (!resp.ok) throw new Error('No se pudo descargar el archivo (' + resp.status + ')');
+      const doc = await pdfjsLib.getDocument({ data: new Uint8Array(await resp.arrayBuffer()) }).promise;
+      const page = await doc.getPage(1);
+      const vp = page.getViewport({ scale: 1 });
+      const escala = Math.min(320 / vp.width, 1);
+      const v = page.getViewport({ scale: escala });
+      const canvas = document.createElement('canvas');
+      canvas.width = v.width; canvas.height = v.height;
+      await page.render({ canvasContext: canvas.getContext('2d'), viewport: v }).promise;
+      caja.innerHTML = `<p class="nota">${doc.numPages} página(s) · <a href="${escapar(d.url)}" target="_blank" rel="noopener">abrir el archivo</a></p>`;
+      caja.appendChild(canvas);
+    } catch (err) {
+      caja.innerHTML = '<p class="nota">No se pudo previsualizar: ' + escapar(err?.message || err) + '</p>';
+    }
+  }
+
+  // ---------------------------------------------------------- crear cat.
+  $('nuevaCategoriaBtn').addEventListener('click', async () => {
+    const nombre = await preguntar({ titulo: 'Nueva categoría', texto: 'Aparecerá como un grupo en el desplegable del generador.', valor: '' });
+    if (!nombre) return;
+    const orden = 1 + Math.max(0, ...categorias.map(c => c.orden));
+    try {
+      await guardar(sb.from('disenos_qr_categorias').insert({ nombre, orden }));
+      aviso('Categoría «' + nombre + '» creada.');
+    } catch (err) {
+      aviso('No se pudo crear la categoría.\n' + (err?.message || err), 'bad');
+    }
+  });
+
+  // -------------------------------------------------------------- subida
+  $('subirBtn').addEventListener('click', async () => {
+    limpiarAviso();
+    const file = $('archivo').files?.[0];
+    if (!file) return aviso('Elige primero un archivo.', 'bad');
+
+    let categoriaId = $('categoria').value;
+    const nombre = $('nombre').value.trim() || file.name.replace(/\.[^.]+$/, '');
+
+    const btn = $('subirBtn');
+    btn.disabled = true;
+    btn.textContent = 'Subiendo...';
+    $('barraWrap').classList.remove('hidden');
+    $('barra').style.width = '10%';
+
+    try {
+      if (categoriaId === '__nueva') {
+        const nueva = $('nuevaCat').value.trim();
+        if (!nueva) throw new Error('Escribe el nombre de la categoría nueva.');
+        const orden = 1 + Math.max(0, ...categorias.map(c => c.orden));
+        const { data, error } = await sb.from('disenos_qr_categorias')
+          .insert({ nombre: nueva, orden }).select('id').single();
+        if (error) throw error;
+        categoriaId = data.id;
+      }
+      $('barra').style.width = '30%';
+
+      // El generador carga siempre PDF, así que las imágenes se convierten aquí.
+      const bytes = file.type.startsWith('image/') ? await imagenAPdf(file) : new Uint8Array(await file.arrayBuffer());
+      $('barra').style.width = '55%';
+
+      const ruta = crypto.randomUUID() + '.pdf';
+      const { error: errSubida } = await sb.storage.from(BUCKET)
+        .upload(ruta, new Blob([bytes], { type: 'application/pdf' }), { contentType: 'application/pdf', upsert: false });
+      if (errSubida) throw errSubida;
+      $('barra').style.width = '80%';
+
+      const { data: pub } = sb.storage.from(BUCKET).getPublicUrl(ruta);
+      const orden = 1 + Math.max(0, ...disenos.filter(x => x.categoria_id === categoriaId).map(x => x.orden));
+      const { error: errFila } = await sb.from('disenos_qr').insert({
+        categoria_id: categoriaId, nombre, url: pub.publicUrl,
+        origen: 'storage', storage_path: ruta, orden
+      });
+      if (errFila) {
+        await sb.storage.from(BUCKET).remove([ruta]); // no dejar el archivo huérfano
+        throw errFila;
+      }
+      $('barra').style.width = '100%';
+
+      $('archivo').value = ''; $('nombre').value = ''; $('nuevaCat').value = '';
+      await cargarTodo();
+      aviso('«' + nombre + '» ya está en la galería.');
+    } catch (err) {
+      aviso('No se pudo subir el diseño.\n' + (err?.message || err), 'bad');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Subir a la galería';
+      setTimeout(() => { $('barraWrap').classList.add('hidden'); $('barra').style.width = '0'; }, 600);
+    }
+  });
+
+  async function imagenAPdf(file){
+    const { PDFDocument } = PDFLib;
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    const doc = await PDFDocument.create();
+    const img = file.type === 'image/jpeg' ? await doc.embedJpg(bytes) : await doc.embedPng(bytes);
+    const page = doc.addPage([img.width, img.height]);
+    page.drawImage(img, { x: 0, y: 0, width: img.width, height: img.height });
+    return await doc.save();
+  }
+
+  arrancar();
+})();
+</script>
+</body>
+</html>
