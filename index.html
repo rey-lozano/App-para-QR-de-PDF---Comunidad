@@ -799,6 +799,9 @@
       // Cada caja guarda la página y el tamaño de canvas con el que se dibujó.
       selections: { qr: null, phone: null },
       target: 'qr',
+      // Vista previa limpia: se ocultan los recuadros de recorte para ver el
+      // documento tal cual va a quedar. Cualquier retoque los vuelve a mostrar.
+      cleanPreview: false,
       qrImage: null,
       outputBlob: null,
       outputUrl: null
@@ -893,7 +896,16 @@
       return kinds.includes(state.target) ? state.target : kinds[0];
     }
 
+    // Cualquier ajuste saca de la vista limpia: hay que volver a ver los
+    // recuadros para poder moverlos.
+    function exitCleanPreview(){
+      if (!state.cleanPreview) return false;
+      state.cleanPreview = false;
+      return true;
+    }
+
     function setTarget(kind){
+      exitCleanPreview();
       state.target = kind;
       refreshTargetUI();
       redrawOverlay();
@@ -1036,6 +1048,7 @@
       state.pdfjsDoc = await pdfjsLib.getDocument({ data: state.pdfBytesForView.slice() }).promise;
       state.totalPages = state.pdfjsDoc.numPages;
       state.currentPage = 1;
+      state.cleanPreview = false;
       state.selections = { qr: null, phone: null };
       state.qrImage = null;
       cleanupOutput();
@@ -1143,6 +1156,9 @@
           }
         }
 
+        // En vista limpia no se dibuja ningún recuadro: solo el contenido.
+        if (state.cleanPreview && !dragRect) continue;
+
         // La caja activa se resalta; la otra queda con un borde discreto para
         // que se vea dónde está colocada sin estorbar.
         overlayCtx.save();
@@ -1194,6 +1210,7 @@
     function startSelection(evt){
       if (!state.pdfjsDoc) return;
       if (evt.cancelable) evt.preventDefault();
+      exitCleanPreview();
       const p = getPointFromAnyEvent(evt);
       const sobre = boxAtPoint(p);
 
@@ -1329,6 +1346,7 @@
 
     async function loadQrPreview(){
       const modes = getModes();
+      state.cleanPreview = true;
       if (!modes.qr) {
         state.qrImage = null;
         state.qrPreviewFor = null;
@@ -1595,12 +1613,13 @@
     });
 
     prevPage.addEventListener('click', async () => {
-      state.currentPage -= 1; updateSelectionText(); cleanupOutput(); await renderCurrentPage();
+      state.currentPage -= 1; exitCleanPreview(); updateSelectionText(); cleanupOutput(); await renderCurrentPage();
     });
     nextPage.addEventListener('click', async () => {
-      state.currentPage += 1; updateSelectionText(); cleanupOutput(); await renderCurrentPage();
+      state.currentPage += 1; exitCleanPreview(); updateSelectionText(); cleanupOutput(); await renderCurrentPage();
     });
     clearBtn.addEventListener('click', () => {
+      exitCleanPreview();
       const target = currentTarget();
       if (target && state.selections[target]) {
         state.selections[target] = null;
@@ -1615,7 +1634,7 @@
       try {
         setStatus('Generando vista previa del QR...', 'ok');
         await loadQrPreview();
-        setStatus('Vista previa lista. Si quedó bien, pulsa "Generar archivo final".', 'ok');
+        setStatus('Vista previa lista, sin los recuadros de recorte. Toca el documento si quieres volver a moverlos.', 'ok');
       } catch (err) {
         setStatus('No se pudo generar la vista previa.\n' + (err?.message || String(err)), 'error');
       }
@@ -1654,16 +1673,17 @@
       }
     });
 
-    qrMargin.addEventListener('input', redrawOverlay);
+    qrMargin.addEventListener('input', () => { exitCleanPreview(); redrawOverlay(); });
 
-    qrLink.addEventListener('input', () => { redrawOverlay(); updateButtons(); });
-    phoneNumber.addEventListener('input', () => { redrawOverlay(); updateButtons(); });
-    phoneExtra.addEventListener('input', () => { redrawOverlay(); updateButtons(); });
+    qrLink.addEventListener('input', () => { exitCleanPreview(); redrawOverlay(); updateButtons(); });
+    phoneNumber.addEventListener('input', () => { exitCleanPreview(); redrawOverlay(); updateButtons(); });
+    phoneExtra.addEventListener('input', () => { exitCleanPreview(); redrawOverlay(); updateButtons(); });
     placeTarget.querySelectorAll('.place-btn').forEach(btn => {
       btn.addEventListener('click', () => setTarget(btn.dataset.target));
     });
 
     [useQr, usePhone].forEach(cb => cb.addEventListener('change', () => {
+      exitCleanPreview();
       state.qrImage = null;
       refreshContentModeUI();
       clearStatus();
