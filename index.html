@@ -800,6 +800,9 @@
       // y el teléfono van por separado. Así una cara y su reverso se colocan
       // independientemente: { 1: {qr, phone}, 2: {qr, phone} }.
       selections: {},
+      // Y los datos también: cada página guarda su link, su teléfono y sus
+      // opciones. Si no, cambiar el link en el reverso cambiaba el de la cara.
+      form: {},
       target: 'qr',
       // Vista previa limpia: se ocultan los recuadros de recorte para ver el
       // documento tal cual va a quedar. Cualquier retoque los vuelve a mostrar.
@@ -850,6 +853,48 @@
     // Los dos modos son independientes: se puede marcar QR, teléfono, o ambos.
     function getModes(){
       return { qr: useQr.checked, phone: usePhone.checked };
+    }
+
+    function leerFormulario(){
+      return {
+        useQr: useQr.checked, usePhone: usePhone.checked,
+        qrLink: qrLink.value, qrMargin: qrMargin.value,
+        phoneNumber: phoneNumber.value, phoneExtra: phoneExtra.value
+      };
+    }
+
+    function escribirFormulario(d){
+      useQr.checked = d.useQr; usePhone.checked = d.usePhone;
+      qrLink.value = d.qrLink; qrMargin.value = d.qrMargin;
+      phoneNumber.value = d.phoneNumber; phoneExtra.value = d.phoneExtra;
+    }
+
+    // Datos de una página. La que se está viendo se lee siempre del formulario,
+    // que es la fuente viva; las demás, de lo guardado al salir de ellas.
+    function datosDe(pagina){
+      if (pagina === state.currentPage) return leerFormulario();
+      return state.form[pagina] || leerFormulario();
+    }
+
+    function guardarPaginaActual(){
+      state.form[state.currentPage] = leerFormulario();
+    }
+
+    // Al entrar por primera vez en una página hereda lo que hubiera, para no
+    // reescribir el mismo link en el reverso; a partir de ahí va por su cuenta.
+    function cambiarDePagina(nueva){
+      guardarPaginaActual();
+      const heredado = state.form[state.currentPage];
+      state.currentPage = nueva;
+      if (!state.form[nueva]) state.form[nueva] = { ...heredado };
+      escribirFormulario(state.form[nueva]);
+      state.target = 'qr';
+      state.qrImage = null;
+      state.qrPreviewFor = null;
+      exitCleanPreview();
+      // Las casillas pueden ser distintas en esta página, así que hay que rehacer
+      // la interfaz entera, no solo el selector de destino.
+      refreshContentModeUI();
     }
 
     // Cajas de una página (se crean vacías la primera vez que se piden).
@@ -1047,12 +1092,10 @@
 
     function updateButtons(){
       const ready = !!state.pdfBytesForView && !!state.pdfjsDoc;
-      const kinds = activeKinds();
-      const value = k => k === 'qr' ? qrLink.value.trim() : phoneNumber.value.trim();
-      // Vale con que haya al menos una caja puesta de un elemento marcado que
-      // tenga su dato: el resto de páginas puede quedarse sin nada.
-      const colocadas = todasLasCajas().filter(c => kinds.includes(c.kind));
-      const listo = colocadas.length > 0 && colocadas.every(c => !!value(c.kind));
+      // Vale con que haya al menos una caja puesta, marcada y con su dato, en
+      // cualquier página; cada una se juzga con SUS datos.
+      const colocadas = cajasUtiles();
+      const listo = colocadas.length > 0;
       previewBtn.disabled = !(ready && listo);
       generateBtn.disabled = !(ready && listo);
       const aqui = cajasDe(state.currentPage);
@@ -1060,6 +1103,16 @@
       prevPage.disabled = !(ready && state.currentPage > 1);
       nextPage.disabled = !(ready && state.currentPage < state.totalPages);
     }
+    // Cajas que de verdad se van a estampar: marcadas y con contenido en los
+    // datos de su propia página.
+    function cajasUtiles(){
+      return todasLasCajas().filter(({ pagina, kind }) => {
+        const d = datosDe(pagina);
+        if (kind === 'qr') return d.useQr && !!String(d.qrLink).trim();
+        return d.usePhone && !!String(d.phoneNumber).trim();
+      });
+    }
+
     function updateSelectionText(){
       const nombre = { qr: 'QR', phone: 'Teléfono' };
       const kinds = activeKinds();
@@ -1097,6 +1150,7 @@
       state.currentPage = 1;
       state.cleanPreview = false;
       state.selections = {};
+      state.form = {};
       state.qrImage = null;
       cleanupOutput();
       await renderCurrentPage();
@@ -1351,9 +1405,9 @@
       return bytes;
     }
 
-    function buildQrCanvas() {
+    function buildQrCanvas(texto) {
       if (typeof qrcode !== 'function') throw new Error('No cargó la librería del QR');
-      const value = qrLink.value.trim();
+      const value = (texto !== undefined ? texto : qrLink.value).trim();
       const qr = qrcode(0, 'M');
       qr.addData(value);
       qr.make();
@@ -1420,16 +1474,14 @@
       const editableCopy = new Uint8Array(state.pdfBytesForEdit); // copia nueva para cada generación
       const pdfDoc = await PDFDocument.load(editableCopy);
 
-      const kinds = activeKinds();
-      if (!kinds.length) throw new Error('Marca al menos QR o teléfono.');
-
-      const phone = getPhoneDisplayValue(phoneNumber.value);
-      if (kinds.includes('phone') && !phone) throw new Error('Escribe un número de teléfono.');
-      if (kinds.includes('qr') && !qrLink.value.trim()) throw new Error('Escribe el link o texto para el QR.');
-      const colocadas = todasLasCajas().filter(c => kinds.includes(c.kind));
-      if (!colocadas.length) throw new Error('Falta dibujar algún recuadro sobre el documento.');
+      guardarPaginaActual();
+      const colocadas = cajasUtiles();
+      if (!colocadas.length) {
+        throw new Error('No hay nada que estampar: marca QR o teléfono, rellena su dato y dibuja el recuadro.');
+      }
 
       for (const { pagina, kind, sel } of colocadas) {
+        const datos = datosDe(pagina);
         const page = pdfDoc.getPages()[pagina - 1];
         if (!page) throw new Error('No se encontró la página ' + pagina + '.');
         const pdfWidth = page.getWidth(), pdfHeight = page.getHeight();
@@ -1442,19 +1494,19 @@
         if (kind === 'qr') {
           page.drawRectangle({ x: box.x, y: box.y, width: box.width, height: box.height, color: rgb(1,1,1) });
 
-          setDiag('Generando imagen QR local...');
-          const qrCanvas = buildQrCanvas();
+          setDiag('Generando el QR de la página ' + pagina + '...');
+          const qrCanvas = buildQrCanvas(datos.qrLink);
           const pngBytes = dataUrlToUint8Array(qrCanvas.toDataURL('image/png'));
           const qrPng = await pdfDoc.embedPng(pngBytes);
 
-          const marginPct = Math.max(0, Math.min(30, Number(qrMargin.value || 0))) / 100;
+          const marginPct = Math.max(0, Math.min(30, Number(datos.qrMargin || 0))) / 100;
           const mx = box.width * marginPct, my = box.height * marginPct;
           const innerW = Math.max(0, box.width - mx*2), innerH = Math.max(0, box.height - my*2);
           const side = Math.min(innerW, innerH);
           const drawX = box.x + mx + (innerW - side) / 2;
           const drawY = box.y + my + (innerH - side) / 2;
 
-          setDiag('Insertando QR en la página...');
+          setDiag('Insertando el QR en la página ' + pagina + '...');
           page.drawImage(qrPng, { x: drawX, y: drawY, width: side, height: side });
           continue;
         }
@@ -1463,7 +1515,8 @@
         const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
         const fontRegular = await pdfDoc.embedFont(StandardFonts.Helvetica);
 
-        const extra = phoneExtra.value.trim();
+        const phone = getPhoneDisplayValue(datos.phoneNumber);
+        const extra = String(datos.phoneExtra).trim();
         const textColor = sel.dark ? rgb(1, 1, 1) : rgb(0.04, 0.08, 0.19);
         const centroX = box.x + box.width / 2;
         const k = box.width / sel.w;                    // píxeles de canvas -> puntos
@@ -1487,7 +1540,7 @@
           });
         };
 
-        setDiag('Insertando teléfono en la página...');
+        setDiag('Insertando el teléfono en la página ' + pagina + '...');
         if (m.extra) escribir(extra, fontRegular, m.extra.size, m.extra.centro);
         escribir(phone, fontBold, m.phone.size, m.phone.centro);
       }
@@ -1665,10 +1718,10 @@
     });
 
     prevPage.addEventListener('click', async () => {
-      state.currentPage -= 1; exitCleanPreview(); state.target = 'qr'; refreshTargetUI(); updateSelectionText(); cleanupOutput(); await renderCurrentPage();
+      cambiarDePagina(state.currentPage - 1); updateSelectionText(); cleanupOutput(); await renderCurrentPage();
     });
     nextPage.addEventListener('click', async () => {
-      state.currentPage += 1; exitCleanPreview(); state.target = 'qr'; refreshTargetUI(); updateSelectionText(); cleanupOutput(); await renderCurrentPage();
+      cambiarDePagina(state.currentPage + 1); updateSelectionText(); cleanupOutput(); await renderCurrentPage();
     });
     clearBtn.addEventListener('click', () => {
       exitCleanPreview();
@@ -1730,6 +1783,7 @@
     // recuadros fuera, los campos vacíos y el resultado anterior descartado.
     resetBtn.addEventListener('click', async () => {
       state.selections = {};
+      state.form = {};
       state.target = 'qr';
       state.cleanPreview = false;
       state.qrImage = null;
