@@ -201,6 +201,7 @@
     <h3 id="modalTitulo"></h3>
     <p id="modalTexto"></p>
     <input id="modalInput" type="text" class="hidden" />
+    <select id="modalSelect" class="hidden"></select>
     <div class="acciones">
       <button class="btn-ghost" id="modalCancelar">Cancelar</button>
       <button class="btn-primary" id="modalAceptar" style="width:auto">Aceptar</button>
@@ -239,35 +240,54 @@
   function limpiarAviso(){ $('statusBox').classList.add('hidden'); }
 
   // Modal propio: el navegador no pinta prompt() ni confirm() aquí.
-  function preguntar({ titulo, texto, valor = null, aceptar = 'Aceptar', peligro = false }){
+  // valor    -> pide texto      opciones -> pide elegir de una lista
+  // ninguno  -> solo confirmar
+  function preguntar({ titulo, texto, valor = null, opciones = null, aceptar = 'Aceptar', peligro = false }){
     return new Promise(resolve => {
       $('modalTitulo').textContent = titulo;
       $('modalTexto').textContent = texto || '';
       $('modalTexto').classList.toggle('hidden', !texto);
+
       const input = $('modalInput');
-      const pideTexto = valor !== null;
+      const select = $('modalSelect');
+      const pideTexto = valor !== null && !opciones;
+      const pideOpcion = Array.isArray(opciones) && opciones.length > 0;
       input.classList.toggle('hidden', !pideTexto);
+      select.classList.toggle('hidden', !pideOpcion);
       if (pideTexto) input.value = valor;
+      if (pideOpcion) {
+        select.innerHTML = opciones
+          .map(o => `<option value="${escapar(o.valor)}">${escapar(o.etiqueta)}</option>`).join('');
+        if (valor) select.value = valor;
+      }
+
       const ok = $('modalAceptar');
       ok.textContent = aceptar;
       ok.className = peligro ? 'btn-danger' : 'btn-primary';
       ok.style.width = 'auto';
       $('modalOverlay').classList.remove('hidden');
-      if (pideTexto) setTimeout(() => input.focus(), 50);
+      const foco = pideOpcion ? select : (pideTexto ? input : null);
+      if (foco) setTimeout(() => foco.focus(), 50);
 
       const cerrar = (res) => {
         $('modalOverlay').classList.add('hidden');
         ok.removeEventListener('click', alAceptar);
         $('modalCancelar').removeEventListener('click', alCancelar);
         input.removeEventListener('keydown', alTeclear);
+        select.removeEventListener('keydown', alTeclear);
         resolve(res);
       };
-      const alAceptar = () => cerrar(pideTexto ? input.value.trim() : true);
+      const alAceptar = () => {
+        if (pideOpcion) return cerrar(select.value);
+        if (pideTexto)  return cerrar(input.value.trim());
+        cerrar(true);
+      };
       const alCancelar = () => cerrar(null);
       const alTeclear = e => { if (e.key === 'Enter') { e.preventDefault(); alAceptar(); } };
       ok.addEventListener('click', alAceptar);
       $('modalCancelar').addEventListener('click', alCancelar);
       input.addEventListener('keydown', alTeclear);
+      select.addEventListener('keydown', alTeclear);
     });
   }
 
@@ -442,14 +462,14 @@
     if (accion === 'mover') {
       const otras = categorias.filter(c => c.id !== d.categoria_id);
       if (!otras.length) return aviso('No hay otra categoría a la que moverlo.', 'bad');
-      const nombre = await preguntar({
-        titulo: 'Mover a otra categoría',
-        texto: 'Escribe el nombre exacto de la categoría destino: ' + otras.map(c => c.nombre).join(' · '),
-        valor: otras[0].nombre
+      const destinoId = await preguntar({
+        titulo: 'Mover «' + d.nombre + '»',
+        texto: 'Elige la categoría destino.',
+        opciones: otras.map(c => ({ valor: c.id, etiqueta: c.nombre })),
+        aceptar: 'Mover'
       });
-      if (!nombre) return;
-      const destino = categorias.find(c => c.nombre.toLowerCase() === nombre.toLowerCase());
-      if (!destino) return aviso('No existe ninguna categoría con ese nombre.', 'bad');
+      if (!destinoId) return;
+      const destino = categorias.find(c => c.id === destinoId);
       const orden = 1 + Math.max(0, ...disenos.filter(x => x.categoria_id === destino.id).map(x => x.orden));
       await guardar(sb.from('disenos_qr').update({ categoria_id: destino.id, orden }).eq('id', id));
       return aviso('Movido a «' + destino.nombre + '».');
