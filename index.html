@@ -97,6 +97,20 @@
     .field-symmetric input{width:100%}
     .row .field{display:flex; flex-direction:column; margin-bottom:0}
     .row .field label{min-height:38px; display:flex; align-items:flex-end}
+    .check-group{display:flex; flex-direction:column; gap:10px}
+    .field .check-option{
+      display:flex; align-items:center; gap:12px; cursor:pointer; margin-bottom:0;
+      padding:13px 16px; border:1px solid var(--glass-border); border-radius:14px;
+      background:rgba(0,0,0,0.2); font-size:15px; font-weight:500; color:var(--text);
+      letter-spacing:0; transition:all .2s cubic-bezier(0.4,0,0.2,1);
+    }
+    .field .check-option:hover{border-color:rgba(255,255,255,0.2); background:rgba(0,0,0,0.25)}
+    .field .check-option.is-on{border-color:var(--accent); background:rgba(11,21,48,0.8); color:#fff}
+    .check-option input[type="checkbox"]{
+      width:18px; height:18px; flex:0 0 auto; margin:0; padding:0; border-radius:4px;
+      accent-color:var(--accent); box-shadow:none; cursor:pointer;
+    }
+    .label-hint{font-weight:400; color:var(--muted); font-size:13px; letter-spacing:0}
     button, .action-link{
       appearance:none; border:none; border-radius:14px; padding:15px 20px; font-size:16px;
       font-weight:600; letter-spacing:0.2px; cursor:pointer; text-decoration:none; display:flex;
@@ -556,27 +570,40 @@
           <input id="pdfFile" type="file" accept="application/pdf,image/jpeg,image/png" />
           <div style="margin-top:6px; font-size:12px; color:var(--muted);">Formatos permitidos: PDF, JPG, PNG</div>
         </div>
-        <div class="row row-top">
-          <div class="field">
-            <label for="contentType">Tipo de contenido</label>
-            <select id="contentType">
-              <option value="qr" selected>QR con link o texto</option>
-              <option value="phone">Número de teléfono</option>
-            </select>
-          </div>
-          <div class="field">
-            <label for="phoneNumber">Teléfono</label>
-            <input id="phoneNumber" type="tel" placeholder="+34 600 123 456" />
+        <div class="field field-symmetric">
+          <label>Tipo de contenido <span class="label-hint">(puedes marcar los dos)</span></label>
+          <div class="check-group">
+            <label class="check-option is-on" id="useQrOption">
+              <input type="checkbox" id="useQr" checked />
+              <span>QR con link o texto</span>
+            </label>
+            <label class="check-option" id="usePhoneOption">
+              <input type="checkbox" id="usePhone" />
+              <span>Número de teléfono</span>
+            </label>
           </div>
         </div>
 
-        <div class="field field-symmetric" style="margin-top:6px;">
-          <label for="qrLink" id="qrLabel">Link o texto para el QR</label>
-          <input id="qrLink" type="text" placeholder="https://tusitio.com/registro" />
+        <div id="qrFields">
+          <div class="field field-symmetric">
+            <label for="qrLink">Link o texto para el QR</label>
+            <input id="qrLink" type="text" placeholder="https://tusitio.com/registro" />
+          </div>
+          <div class="field field-symmetric">
+            <label for="qrMargin">Margen interno del QR</label>
+            <input id="qrMargin" type="number" min="0" max="30" value="4" />
+          </div>
         </div>
-        <div class="field field-symmetric">
-          <label for="qrMargin">Margen interno del QR</label>
-          <input id="qrMargin" type="number" min="0" max="30" value="4" />
+
+        <div id="phoneFields" class="hidden">
+          <div class="field field-symmetric">
+            <label for="phoneNumber">Teléfono</label>
+            <input id="phoneNumber" type="tel" placeholder="+34 600 123 456" />
+          </div>
+          <div class="field field-symmetric">
+            <label for="phoneExtra">Texto opcional adicional</label>
+            <input id="phoneExtra" type="text" placeholder="Ej: Llámanos ahora" />
+          </div>
         </div>
 
         <div class="diag">
@@ -752,7 +779,7 @@
       outputUrl: null
     };
 
-    const pdfSource = $('pdfSource'), customPdfWrapper = $('customPdfWrapper'), pdfFile = $('pdfFile'), qrLink = $('qrLink'), qrMargin = $('qrMargin'), contentType = $('contentType'), phoneNumber = $('phoneNumber'), qrLabel = $('qrLabel');
+    const pdfSource = $('pdfSource'), customPdfWrapper = $('customPdfWrapper'), pdfFile = $('pdfFile'), qrLink = $('qrLink'), qrMargin = $('qrMargin'), useQr = $('useQr'), usePhone = $('usePhone'), phoneNumber = $('phoneNumber'), phoneExtra = $('phoneExtra'), qrFields = $('qrFields'), phoneFields = $('phoneFields');
     const previewBtn = $('previewBtn'), generateBtn = $('generateBtn'), clearBtn = $('clearBtn');
     const prevPage = $('prevPage'), nextPage = $('nextPage'), pageInfo = $('pageInfo');
     const statusBox = $('status'), pdfCanvas = $('pdfCanvas'), overlayCanvas = $('overlayCanvas');
@@ -778,8 +805,34 @@
       return `${baseName}_con_QR.pdf`;
     }
 
-    function getSelectedMode(){
-      return contentType.value;
+    // Los dos modos son independientes: se puede marcar QR, teléfono, o ambos.
+    function getModes(){
+      return { qr: useQr.checked, phone: usePhone.checked };
+    }
+
+    // Reparte el rectángulo seleccionado (en píxeles de canvas) entre QR y teléfono.
+    // Con los dos activos: si la selección es apaisada, QR a la izquierda y teléfono
+    // a la derecha; si es vertical, QR arriba y teléfono debajo.
+    function splitRegions(rect){
+      const modes = getModes();
+      if (!modes.qr && !modes.phone) return { qr: null, phone: null };
+      if (!modes.phone) return { qr: rect, phone: null };
+      if (!modes.qr) return { qr: null, phone: rect };
+
+      if (rect.w >= rect.h) {
+        const gap = rect.w * 0.04;
+        const side = Math.max(0, Math.min(rect.h, (rect.w - gap) * 0.5));
+        return {
+          qr:    { x: rect.x, y: rect.y + (rect.h - side) / 2, w: side, h: side },
+          phone: { x: rect.x + side + gap, y: rect.y, w: Math.max(0, rect.w - side - gap), h: rect.h }
+        };
+      }
+      const gap = rect.h * 0.04;
+      const side = Math.max(0, Math.min(rect.w, (rect.h - gap) * 0.62));
+      return {
+        qr:    { x: rect.x + (rect.w - side) / 2, y: rect.y, w: side, h: side },
+        phone: { x: rect.x, y: rect.y + side + gap, w: rect.w, h: Math.max(0, rect.h - side - gap) }
+      };
     }
 
     function getPhoneDisplayValue(raw){
@@ -788,16 +841,11 @@
     }
 
     function refreshContentModeUI(){
-      const phoneMode = getSelectedMode() === 'phone';
-      phoneNumber.parentElement.classList.toggle('hidden', !phoneMode);
-      qrLabel.textContent = phoneMode ? 'Texto opcional adicional' : 'Link o texto para el QR';
-      qrLink.placeholder = phoneMode ? 'Ej: Llámanos ahora' : 'https://tusitio.com/registro';
-      qrMargin.disabled = phoneMode;
-      if (phoneMode) {
-        qrMargin.style.opacity = '0.6';
-      } else {
-        qrMargin.style.opacity = '1';
-      }
+      const modes = getModes();
+      qrFields.classList.toggle('hidden', !modes.qr);
+      phoneFields.classList.toggle('hidden', !modes.phone);
+      $('useQrOption').classList.toggle('is-on', modes.qr);
+      $('usePhoneOption').classList.toggle('is-on', modes.phone);
       redrawOverlay();
       updateButtons();
     }
@@ -814,13 +862,11 @@
 
     function drawPhonePreview(rect){
       const phone = getPhoneDisplayValue(phoneNumber.value);
-      if (!phone) return;
+      if (!phone || rect.w < 3 || rect.h < 3) return;
       overlayCtx.save();
-      overlayCtx.fillStyle = '#ffffff';
-      overlayCtx.fillRect(rect.x, rect.y, rect.w, rect.h);
 
       const cx = rect.x + rect.w / 2;
-      const extra = qrLink.value.trim();
+      const extra = phoneExtra.value.trim();
       const availableWidth = rect.w * 0.86;
       const color = '#0b1530';
 
@@ -851,7 +897,10 @@
     function updateButtons(){
       const ready = !!state.pdfBytesForView && !!state.pdfjsDoc;
       const selected = !!state.selection;
-      const hasContent = contentType.value === 'phone' ? !!phoneNumber.value.trim() : !!qrLink.value.trim();
+      const modes = getModes();
+      const hasContent = (modes.qr || modes.phone)
+        && (!modes.qr || !!qrLink.value.trim())
+        && (!modes.phone || !!phoneNumber.value.trim());
       previewBtn.disabled = !(ready && selected && hasContent);
       generateBtn.disabled = !(ready && selected && hasContent);
       clearBtn.disabled = !selected;
@@ -952,23 +1001,25 @@
       const rect = dragRect ? normalizeRect(dragRect) : state.selection;
       if (!rect || rect.w < 3 || rect.h < 3) return;
 
-      if (getSelectedMode() === 'phone') {
-        drawPhonePreview(rect);
-      } else {
-        if (state.qrImage) {
-          overlayCtx.fillStyle = '#ffffff';
-          overlayCtx.fillRect(rect.x, rect.y, rect.w, rect.h);
-        }
-        if (state.qrImage) {
-          const marginPct = Math.max(0, Math.min(30, Number(qrMargin.value || 0))) / 100;
-          const mx = rect.w * marginPct, my = rect.h * marginPct;
-          const innerW = Math.max(0, rect.w - mx * 2), innerH = Math.max(0, rect.h - my * 2);
-          const side = Math.min(innerW, innerH);
-          const drawX = rect.x + mx + (innerW - side) / 2;
-          const drawY = rect.y + my + (innerH - side) / 2;
-          overlayCtx.drawImage(state.qrImage, drawX, drawY, side, side);
-        }
+      const regions = splitRegions(rect);
+      const showQr = !!(regions.qr && state.qrImage);
+      const showPhone = !!(regions.phone && getPhoneDisplayValue(phoneNumber.value));
+
+      if (showQr || showPhone) {
+        overlayCtx.fillStyle = '#ffffff';
+        overlayCtx.fillRect(rect.x, rect.y, rect.w, rect.h);
       }
+      if (showQr) {
+        const box = regions.qr;
+        const marginPct = Math.max(0, Math.min(30, Number(qrMargin.value || 0))) / 100;
+        const mx = box.w * marginPct, my = box.h * marginPct;
+        const innerW = Math.max(0, box.w - mx * 2), innerH = Math.max(0, box.h - my * 2);
+        const side = Math.min(innerW, innerH);
+        const drawX = box.x + mx + (innerW - side) / 2;
+        const drawY = box.y + my + (innerH - side) / 2;
+        overlayCtx.drawImage(state.qrImage, drawX, drawY, side, side);
+      }
+      if (showPhone) drawPhonePreview(regions.phone);
 
       overlayCtx.fillStyle = 'rgba(95,141,255,.18)';
       overlayCtx.strokeStyle = '#7da5ff';
@@ -1130,7 +1181,8 @@
     }
 
     async function loadQrPreview(){
-      if (getSelectedMode() === 'phone') {
+      const modes = getModes();
+      if (!modes.qr) {
         state.qrImage = null;
         redrawOverlay();
         setDiag('Vista previa del teléfono generada correctamente.');
@@ -1140,7 +1192,9 @@
       const qrCanvas = buildQrCanvas();
       state.qrImage = await canvasToImage(qrCanvas);
       redrawOverlay();
-      setDiag('Vista previa del QR generada correctamente.');
+      setDiag(modes.phone
+        ? 'Vista previa del QR y del teléfono generada correctamente.'
+        : 'Vista previa del QR generada correctamente.');
     }
 
     async function buildOutputPdfBlob(){
@@ -1159,22 +1213,50 @@
       const s = state.selection;
       if (!s) throw new Error('No hay una selección activa.');
 
-      const x = (s.x / cw) * pdfWidth;
-      const y = pdfHeight - ((s.y + s.h) / ch) * pdfHeight;
-      const width = (s.w / cw) * pdfWidth;
-      const height = (s.h / ch) * pdfHeight;
+      const toPdfBox = (r) => ({
+        x: (r.x / cw) * pdfWidth,
+        y: pdfHeight - ((r.y + r.h) / ch) * pdfHeight,
+        width: (r.w / cw) * pdfWidth,
+        height: (r.h / ch) * pdfHeight
+      });
 
-      if (getSelectedMode() === 'phone') {
-        const phone = getPhoneDisplayValue(phoneNumber.value);
-        if (!phone) throw new Error('Escribe un número de teléfono.');
-        page.drawRectangle({ x, y, width, height, color: rgb(1,1,1) });
+      const modes = getModes();
+      if (!modes.qr && !modes.phone) throw new Error('Marca al menos QR o teléfono.');
 
+      const phone = getPhoneDisplayValue(phoneNumber.value);
+      if (modes.phone && !phone) throw new Error('Escribe un número de teléfono.');
+      if (modes.qr && !qrLink.value.trim()) throw new Error('Escribe el link o texto para el QR.');
+
+      const regions = splitRegions(s);
+      const full = toPdfBox(s);
+      page.drawRectangle({ x: full.x, y: full.y, width: full.width, height: full.height, color: rgb(1,1,1) });
+
+      if (modes.qr) {
+        setDiag('Generando imagen QR local...');
+        const qrCanvas = buildQrCanvas();
+        const pngBytes = dataUrlToUint8Array(qrCanvas.toDataURL('image/png'));
+        const qrPng = await pdfDoc.embedPng(pngBytes);
+
+        const box = toPdfBox(regions.qr);
+        const marginPct = Math.max(0, Math.min(30, Number(qrMargin.value || 0))) / 100;
+        const mx = box.width * marginPct, my = box.height * marginPct;
+        const innerW = Math.max(0, box.width - mx*2), innerH = Math.max(0, box.height - my*2);
+        const side = Math.min(innerW, innerH);
+        const drawX = box.x + mx + (innerW - side) / 2;
+        const drawY = box.y + my + (innerH - side) / 2;
+
+        setDiag('Insertando QR en la página...');
+        page.drawImage(qrPng, { x: drawX, y: drawY, width: side, height: side });
+      }
+
+      if (modes.phone) {
         const { StandardFonts } = PDFLib;
         const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
         const fontRegular = await pdfDoc.embedFont(StandardFonts.Helvetica);
 
-        const extra = qrLink.value.trim();
-        const boxCenterX = x + width / 2;
+        const box = toPdfBox(regions.phone);
+        const extra = phoneExtra.value.trim();
+        const boxCenterX = box.x + box.width / 2;
 
         setDiag('Insertando teléfono en la página...');
 
@@ -1188,9 +1270,9 @@
         };
 
         if (extra) {
-          const maxTextWidth = width * 0.86;
-          const smallStart = Math.max(9, Math.min(width * 0.11, height * 0.20));
-          const mainStart = Math.max(13, Math.min(width * 0.18, height * 0.34));
+          const maxTextWidth = box.width * 0.86;
+          const smallStart = Math.max(9, Math.min(box.width * 0.11, box.height * 0.20));
+          const mainStart = Math.max(13, Math.min(box.width * 0.18, box.height * 0.34));
           const smallFontSize = fitPdfFont(fontRegular, extra, smallStart, 7, maxTextWidth);
           const mainFontSize = fitPdfFont(fontBold, phone, mainStart, 10, maxTextWidth);
 
@@ -1199,7 +1281,7 @@
 
           page.drawText(extra, {
             x: boxCenterX - (extraWidth / 2),
-            y: y + height * 0.66,
+            y: box.y + box.height * 0.66,
             size: smallFontSize,
             font: fontRegular,
             color: rgb(0.04, 0.08, 0.19),
@@ -1207,42 +1289,25 @@
 
           page.drawText(phone, {
             x: boxCenterX - (phoneWidth / 2),
-            y: y + height * 0.16,
+            y: box.y + box.height * 0.16,
             size: mainFontSize,
             font: fontBold,
             color: rgb(0.04, 0.08, 0.19),
           });
         } else {
-          const maxTextWidth = width * 0.88;
-          const mainStart = Math.max(13, Math.min(width * 0.20, height * 0.42));
+          const maxTextWidth = box.width * 0.88;
+          const mainStart = Math.max(13, Math.min(box.width * 0.20, box.height * 0.42));
           const mainFontSize = fitPdfFont(fontBold, phone, mainStart, 10, maxTextWidth);
           const phoneWidth = fontBold.widthOfTextAtSize(phone, mainFontSize);
 
           page.drawText(phone, {
             x: boxCenterX - (phoneWidth / 2),
-            y: y + (height - mainFontSize) / 2,
+            y: box.y + (box.height - mainFontSize) / 2,
             size: mainFontSize,
             font: fontBold,
             color: rgb(0.04, 0.08, 0.19),
           });
         }
-      } else {
-        setDiag('Generando imagen QR local...');
-        const qrCanvas = buildQrCanvas();
-        const pngBytes = dataUrlToUint8Array(qrCanvas.toDataURL('image/png'));
-        const qrPng = await pdfDoc.embedPng(pngBytes);
-
-        page.drawRectangle({ x, y, width, height, color: rgb(1,1,1) });
-
-        const marginPct = Math.max(0, Math.min(30, Number(qrMargin.value || 0))) / 100;
-        const mx = width * marginPct, my = height * marginPct;
-        const innerW = Math.max(0, width - mx*2), innerH = Math.max(0, height - my*2);
-        const side = Math.min(innerW, innerH);
-        const drawX = x + mx + (innerW - side) / 2;
-        const drawY = y + my + (innerH - side) / 2;
-
-        setDiag('Insertando QR en la página...');
-        page.drawImage(qrPng, { x: drawX, y: drawY, width: side, height: side });
       }
 
       setDiag('Guardando archivo final...');
@@ -1437,12 +1502,13 @@
 
     qrLink.addEventListener('input', () => { redrawOverlay(); updateButtons(); });
     phoneNumber.addEventListener('input', () => { redrawOverlay(); updateButtons(); });
-    contentType.addEventListener('change', () => {
+    phoneExtra.addEventListener('input', () => { redrawOverlay(); updateButtons(); });
+    [useQr, usePhone].forEach(cb => cb.addEventListener('change', () => {
       state.qrImage = null;
       refreshContentModeUI();
       clearStatus();
       cleanupOutput();
-    });
+    }));
 
     refreshContentModeUI();
 
