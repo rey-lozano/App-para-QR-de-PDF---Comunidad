@@ -585,7 +585,7 @@
           <div style="margin-top:6px; font-size:12px; color:var(--muted);">Formatos permitidos: PDF, JPG, PNG</div>
         </div>
         <div class="field field-symmetric">
-          <label>Tipo de contenido <span class="label-hint">(puedes marcar los dos)</span></label>
+          <label>Tipo de contenido <span class="label-hint">(marca los que necesites)</span></label>
           <div class="check-group">
             <label class="check-option is-on" id="useQrOption">
               <input type="checkbox" id="useQr" checked />
@@ -595,12 +595,17 @@
               <input type="checkbox" id="usePhone" />
               <span>Número de teléfono</span>
             </label>
+            <label class="check-option" id="useWebOption">
+              <input type="checkbox" id="useWeb" />
+              <span>Dirección web</span>
+            </label>
           </div>
           <div class="place-target hidden" id="placeTarget">
             <span class="place-target-label">Colocando ahora</span>
             <div class="place-target-btns">
               <button type="button" class="place-btn is-on" data-target="qr">QR</button>
               <button type="button" class="place-btn" data-target="phone">Teléfono</button>
+              <button type="button" class="place-btn" data-target="web">Web</button>
             </div>
           </div>
         </div>
@@ -624,6 +629,16 @@
           <div class="field field-symmetric">
             <label for="phoneExtra">Texto opcional adicional</label>
             <input id="phoneExtra" type="text" placeholder="Ej: Llámanos ahora" />
+          </div>
+        </div>
+
+        <div id="webFields" class="hidden">
+          <div class="field field-symmetric">
+            <label for="webText">Dirección web</label>
+            <input id="webText" type="text" placeholder="tusitio.com/tu-usuario" />
+            <div style="margin-top:6px; font-size:12px; color:var(--muted);">
+              Se estampa tal cual la escribas. Es independiente del QR.
+            </div>
           </div>
         </div>
 
@@ -813,7 +828,8 @@
       extraUrls: []
     };
 
-    const pdfSource = $('pdfSource'), customPdfWrapper = $('customPdfWrapper'), pdfFile = $('pdfFile'), qrLink = $('qrLink'), qrMargin = $('qrMargin'), useQr = $('useQr'), usePhone = $('usePhone'), phoneNumber = $('phoneNumber'), phoneExtra = $('phoneExtra'), qrFields = $('qrFields'), phoneFields = $('phoneFields'), placeTarget = $('placeTarget');
+    const pdfSource = $('pdfSource'), customPdfWrapper = $('customPdfWrapper'), pdfFile = $('pdfFile'), qrLink = $('qrLink'), qrMargin = $('qrMargin'), useQr = $('useQr'), usePhone = $('usePhone'), phoneNumber = $('phoneNumber'), phoneExtra = $('phoneExtra'), qrFields = $('qrFields'), phoneFields = $('phoneFields'), placeTarget = $('placeTarget'),
+          useWeb = $('useWeb'), webText = $('webText'), webFields = $('webFields');
     const previewBtn = $('previewBtn'), generateBtn = $('generateBtn'), clearBtn = $('clearBtn'), resetBtn = $('resetBtn');
     const prevPage = $('prevPage'), nextPage = $('nextPage'), pageInfo = $('pageInfo');
     const extraDownloads = $('extraDownloads');
@@ -852,21 +868,24 @@
 
     // Los dos modos son independientes: se puede marcar QR, teléfono, o ambos.
     function getModes(){
-      return { qr: useQr.checked, phone: usePhone.checked };
+      return { qr: useQr.checked, phone: usePhone.checked, web: useWeb.checked };
     }
 
     function leerFormulario(){
       return {
-        useQr: useQr.checked, usePhone: usePhone.checked,
+        useQr: useQr.checked, usePhone: usePhone.checked, useWeb: useWeb.checked,
         qrLink: qrLink.value, qrMargin: qrMargin.value,
-        phoneNumber: phoneNumber.value, phoneExtra: phoneExtra.value
+        phoneNumber: phoneNumber.value, phoneExtra: phoneExtra.value,
+        webText: webText.value
       };
     }
 
     function escribirFormulario(d){
       useQr.checked = d.useQr; usePhone.checked = d.usePhone;
+      useWeb.checked = !!d.useWeb;
       qrLink.value = d.qrLink; qrMargin.value = d.qrMargin;
       phoneNumber.value = d.phoneNumber; phoneExtra.value = d.phoneExtra;
+      webText.value = d.webText || '';
     }
 
     // Datos de una página. La que se está viendo se lee siempre del formulario,
@@ -899,7 +918,7 @@
 
     // Cajas de una página (se crean vacías la primera vez que se piden).
     function cajasDe(pagina){
-      if (!state.selections[pagina]) state.selections[pagina] = { qr: null, phone: null };
+      if (!state.selections[pagina]) state.selections[pagina] = { qr: null, phone: null, web: null };
       return state.selections[pagina];
     }
 
@@ -916,7 +935,7 @@
     function todasLasCajas(){
       const salida = [];
       for (const pagina of Object.keys(state.selections)) {
-        for (const kind of ['qr', 'phone']) {
+        for (const kind of ['qr', 'phone', 'web']) {
           const sel = state.selections[pagina][kind];
           if (sel) salida.push({ pagina: Number(pagina), kind, sel });
         }
@@ -955,14 +974,14 @@
       cajasDe(state.currentPage)[kind] = rect ? {
         x: rect.x, y: rect.y, w: rect.w, h: rect.h,
         cw: state.rendered.width, ch: state.rendered.height,
-        dark: kind === 'phone' ? isDarkUnder(rect) : false
+        dark: kind === 'qr' ? false : isDarkUnder(rect)   // el QR lleva su fondo blanco; los textos no
       } : null;
     }
 
     // Elementos marcados, en orden de dibujo.
     function activeKinds(){
       const modes = getModes();
-      return ['qr', 'phone'].filter(k => modes[k]);
+      return ['qr', 'phone', 'web'].filter(k => modes[k]);
     }
 
     // El elemento que recibirá el próximo rectángulo que dibuje el usuario.
@@ -989,8 +1008,8 @@
     }
 
     function refreshTargetUI(){
-      const both = activeKinds().length === 2;
-      placeTarget.classList.toggle('hidden', !both);
+      const varios = activeKinds().length >= 2;
+      placeTarget.classList.toggle('hidden', !varios);
       const target = currentTarget();
       placeTarget.querySelectorAll('.place-btn').forEach(btn => {
         btn.classList.toggle('is-on', btn.dataset.target === target);
@@ -1030,8 +1049,10 @@
       const modes = getModes();
       qrFields.classList.toggle('hidden', !modes.qr);
       phoneFields.classList.toggle('hidden', !modes.phone);
+      webFields.classList.toggle('hidden', !modes.web);
       $('useQrOption').classList.toggle('is-on', modes.qr);
       $('usePhoneOption').classList.toggle('is-on', modes.phone);
+      $('useWebOption').classList.toggle('is-on', modes.web);
       refreshTargetUI();
       redrawOverlay();
       updateButtons();
@@ -1070,10 +1091,14 @@
       };
     }
 
-    function drawPhonePreview(rect, dark){
-      const phone = getPhoneDisplayValue(phoneNumber.value);
+    // Sirve para el telefono y para la direccion web: los dos son texto suelto
+    // sobre el diseno, sin fondo. La web va en una sola linea, sin el texto
+    // adicional que si puede llevar el telefono.
+    function drawPhonePreview(rect, dark, kind){
+      const esWeb = kind === 'web';
+      const phone = esWeb ? webText.value.trim() : getPhoneDisplayValue(phoneNumber.value);
       if (!phone || rect.w < 3 || rect.h < 3) return;
-      const extra = phoneExtra.value.trim();
+      const extra = esWeb ? '' : phoneExtra.value.trim();
       const m = medidasTelefono(rect.w, rect.h, phone, extra);
       const cx = rect.x + rect.w / 2;
 
@@ -1099,7 +1124,7 @@
       previewBtn.disabled = !(ready && listo);
       generateBtn.disabled = !(ready && listo);
       const aqui = cajasDe(state.currentPage);
-      clearBtn.disabled = !(aqui.qr || aqui.phone);
+      clearBtn.disabled = !(aqui.qr || aqui.phone || aqui.web);
       prevPage.disabled = !(ready && state.currentPage > 1);
       nextPage.disabled = !(ready && state.currentPage < state.totalPages);
     }
@@ -1109,15 +1134,16 @@
       return todasLasCajas().filter(({ pagina, kind }) => {
         const d = datosDe(pagina);
         if (kind === 'qr') return d.useQr && !!String(d.qrLink).trim();
+        if (kind === 'web') return d.useWeb && !!String(d.webText || '').trim();
         return d.usePhone && !!String(d.phoneNumber).trim();
       });
     }
 
     function updateSelectionText(){
-      const nombre = { qr: 'QR', phone: 'Teléfono' };
+      const nombre = { qr: 'QR', phone: 'Teléfono', web: 'Web' };
       const kinds = activeKinds();
       if (!kinds.length) {
-        $('selText').textContent = 'Marca QR o teléfono.';
+        $('selText').textContent = 'Marca QR, teléfono o dirección web.';
         return;
       }
       const aqui = cajasDe(state.currentPage);
@@ -1242,7 +1268,9 @@
         if (tieneQr) ensureQrPreview();
         const pinta = kind === 'qr'
           ? (tieneQr && !!state.qrImage)
-          : !!getPhoneDisplayValue(phoneNumber.value);
+          : kind === 'web'
+            ? !!webText.value.trim()
+            : !!getPhoneDisplayValue(phoneNumber.value);
 
         if (pinta) {
           if (kind === 'qr') {
@@ -1251,9 +1279,9 @@
             overlayCtx.fillRect(box.x, box.y, box.w, box.h);
             drawQrInBox(box);
           } else {
-            const sel = cajasDe(state.currentPage).phone;
+            const sel = cajasDe(state.currentPage)[kind];
             const dark = dragRect && kind === target ? isDarkUnder(box) : !!(sel && sel.dark);
-            drawPhonePreview(box, dark);
+            drawPhonePreview(box, dark, kind);
           }
         }
 
@@ -1369,13 +1397,13 @@
         const rect = normalizeRect({ x: dragStart.x, y: dragStart.y, w: p.x - dragStart.x, h: p.y - dragStart.y });
         dragStart = null;
         if (!target) {
-          setDiag('Marca antes QR o teléfono.');
+          setDiag('Marca antes QR, teléfono o dirección web.');
         } else if (rect.w < 8 || rect.h < 8) {
           // Clic sin arrastrar: se deja como estaba.
           setDiag(cajasDe(state.currentPage)[target] ? 'Sin cambios: arrastra para dibujar un recuadro.' : 'La selección fue demasiado pequeña.');
         } else {
           setBox(target, rect);
-          setDiag(target === 'qr' ? 'Recuadro del QR colocado.' : 'Recuadro del teléfono colocado.');
+          setDiag('Recuadro ' + { qr: 'del QR', phone: 'del teléfono', web: 'de la dirección web' }[target] + ' colocado.');
           cleanupOutput();
         }
         redrawOverlay();
@@ -1461,8 +1489,10 @@
       state.qrImage = await canvasToImage(qrCanvas);
       state.qrPreviewFor = value;
       redrawOverlay();
-      setDiag(modes.phone
-        ? 'Vista previa del QR y del teléfono generada correctamente.'
+      const otros = [modes.phone && 'del teléfono', modes.web && 'de la dirección web']
+        .filter(Boolean).join(' y ');
+      setDiag(otros
+        ? 'Vista previa del QR y ' + otros + ' generada correctamente.'
         : 'Vista previa del QR generada correctamente.');
     }
 
@@ -1477,7 +1507,7 @@
       guardarPaginaActual();
       const colocadas = cajasUtiles();
       if (!colocadas.length) {
-        throw new Error('No hay nada que estampar: marca QR o teléfono, rellena su dato y dibuja el recuadro.');
+        throw new Error('No hay nada que estampar: marca QR, teléfono o dirección web, rellena su dato y dibuja el recuadro.');
       }
 
       for (const { pagina, kind, sel } of colocadas) {
@@ -1515,8 +1545,11 @@
         const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
         const fontRegular = await pdfDoc.embedFont(StandardFonts.Helvetica);
 
-        const phone = getPhoneDisplayValue(datos.phoneNumber);
-        const extra = String(datos.phoneExtra).trim();
+        const esWeb = kind === 'web';
+        const phone = esWeb
+          ? String(datos.webText || '').trim()
+          : getPhoneDisplayValue(datos.phoneNumber);
+        const extra = esWeb ? '' : String(datos.phoneExtra).trim();
         const textColor = sel.dark ? rgb(1, 1, 1) : rgb(0.04, 0.08, 0.19);
         const centroX = box.x + box.width / 2;
         const k = box.width / sel.w;                    // píxeles de canvas -> puntos
@@ -1540,7 +1573,7 @@
           });
         };
 
-        setDiag('Insertando el teléfono en la página ' + pagina + '...');
+        setDiag('Insertando ' + (esWeb ? 'la dirección web' : 'el teléfono') + ' en la página ' + pagina + '...');
         if (m.extra) escribir(extra, fontRegular, m.extra.size, m.extra.centro);
         escribir(phone, fontBold, m.phone.size, m.phone.centro);
       }
@@ -1729,7 +1762,7 @@
       const target = currentTarget();
       if (target && aqui[target]) {
         aqui[target] = null;
-        setDiag(target === 'qr' ? 'Recuadro del QR limpiado.' : 'Recuadro del teléfono limpiado.');
+        setDiag('Recuadro ' + { qr: 'del QR', phone: 'del teléfono', web: 'de la dirección web' }[target] + ' limpiado.');
       } else {
         state.selections[state.currentPage] = { qr: null, phone: null };
         setDiag('Selección de esta página limpiada.');
@@ -1814,7 +1847,7 @@
       btn.addEventListener('click', () => setTarget(btn.dataset.target));
     });
 
-    [useQr, usePhone].forEach(cb => cb.addEventListener('change', () => {
+    [useQr, usePhone, useWeb].forEach(cb => cb.addEventListener('change', () => {
       exitCleanPreview();
       state.qrImage = null;
       refreshContentModeUI();
