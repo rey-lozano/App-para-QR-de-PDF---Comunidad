@@ -81,6 +81,17 @@
       background:linear-gradient(135deg,#22c55e,#4ade80); transition:all .2s ease;
     }
     .print-modal-cta:hover{transform:translateY(-2px); box-shadow:0 8px 24px rgba(34,197,94,.35); filter:brightness(1.06)}
+    .print-modal-alta{
+      margin-top:20px; padding-top:18px; border-top:1px solid var(--glass-border);
+    }
+    .print-modal-alta p{font-size:13.5px; line-height:1.55; margin:0 0 12px}
+    .print-modal-alta-cta{
+      display:inline-flex; align-items:center; justify-content:center; gap:9px; width:100%;
+      background:#fff; color:#1b2a55; border:none; border-radius:12px; padding:11px 18px;
+      font-size:14px; font-weight:700; font-family:inherit; cursor:pointer; transition:all .2s ease;
+    }
+    .print-modal-alta-cta img{height:17px; width:auto; display:block}
+    .print-modal-alta-cta:hover{transform:translateY(-1px); box-shadow:0 6px 18px rgba(0,0,0,.35)}
 
     /* ---- Banner de 360imprimir (se ve en las dos pestañas) ---- */
     .promo-print{
@@ -662,14 +673,23 @@
         <h3 id="printModalTitulo">Imprimir tu diseño</h3>
         <p>
           Aquí podrás imprimir tu diseño una vez lo hayas terminado de configurar.
-          Si aún no tienes cuenta en 360imprimir, puedes crearla gratis desde el banner
-          de arriba y obtener <strong class="promo-saldo">3 € de crédito</strong> para tus diseños.
         </p>
         <div id="printModalConfig" hidden>
           <div class="print-modal-config-titulo">Configúralo así en la imprenta</div>
           <dl id="printConfigList"></dl>
         </div>
         <button type="button" class="print-modal-cta" id="printModalGo">Ir a imprimir</button>
+
+        <!-- Segundo camino, para quien todavía no es cliente de la imprenta.
+             Va debajo y con menos peso visual que "Ir a imprimir", que es lo
+             que ha venido a hacer quien abre esta ventana. -->
+        <div class="print-modal-alta">
+          <p>Si aún no tienes cuenta, créala gratis y obtén <strong class="promo-saldo">3 € de crédito</strong> para tus diseños.</p>
+          <button type="button" class="print-modal-alta-cta" id="printModalSignup">
+            <img src="img/360imprimir-logo.png" alt="" aria-hidden="true">
+            Crear mi cuenta gratis
+          </button>
+        </div>
       </div>
     </div>
 
@@ -2197,19 +2217,22 @@
     // enlace, así que se evalúa el botón cuando termina de cargarse
     cargarGaleriaRemota().then(refrescarImpresion);
 
-    // ------------------------------------------------ banner de 360imprimir
+    // ---------------------------------------- alta gratuita en 360imprimir
     // El enlace de invitación no va en el href: así no se ve al pasar el ratón
     // ni con "copiar dirección del enlace", y no aparece tal cual al mirar el
     // código fuente. Va codificado en base64 sólo para que no se pueda buscar
     // el código a simple vista; NO es seguridad: quien abra las herramientas
     // de desarrollo lo verá igual. No hay forma de ocultarlo del todo en una
     // web estática.
-    const promoPrintBtn = $('promoPrintBtn');
-    if (promoPrintBtn) {
-      promoPrintBtn.addEventListener('click', () => {
-        const destino = atob('aHR0cHM6Ly93d3cuMzYwaW1wcmltaXIuZXMvaW52aXRlL0MwRDAzMzE3NzgxNTU4MDY=');
-        window.open(destino, '_blank', 'noopener');
-      });
+    function abrirAltaImprenta(){
+      window.open(atob('aHR0cHM6Ly93d3cuMzYwaW1wcmltaXIuZXMvaW52aXRlL0MwRDAzMzE3NzgxNTU4MDY='),
+                  '_blank', 'noopener');
+    }
+    // Los dos sitios desde donde se puede crear la cuenta: el banner de arriba
+    // y la ventana de imprimir.
+    for (const id of ['promoPrintBtn', 'printModalSignup']) {
+      const b = $(id);
+      if (b) b.addEventListener('click', abrirAltaImprenta);
     }
 
 
