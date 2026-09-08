@@ -43,22 +43,44 @@
       font-family:inherit; cursor:pointer; transition:all .2s ease;
     }
     .print-btn:hover{background:rgba(74,222,128,.18); border-color:rgba(74,222,128,.5); transform:translateY(-1px)}
-    #printConfig{margin-top:10px}
-    #printConfig summary{
-      cursor:pointer; color:var(--muted); font-size:13px; padding:4px 0;
-      list-style:none; display:inline-flex; align-items:center; gap:6px;
-    }
-    #printConfig summary::-webkit-details-marker{display:none}
-    #printConfig summary::before{content:'▸'; transition:transform .2s ease; display:inline-block}
-    #printConfig[open] summary::before{transform:rotate(90deg)}
-    #printConfig summary:hover{color:var(--text)}
     #printConfigList{
-      margin:8px 0 0; padding:12px 14px; display:grid; gap:6px 12px;
-      grid-template-columns:auto 1fr; font-size:13px; line-height:1.5;
-      background:rgba(0,0,0,.22); border:1px solid var(--glass-border); border-radius:12px;
+      margin:10px 0 0; padding:12px 14px; display:grid; gap:6px 12px;
+      grid-template-columns:auto 1fr; font-size:13px; line-height:1.5; text-align:left;
+      background:rgba(0,0,0,.28); border:1px solid var(--glass-border); border-radius:12px;
     }
     #printConfigList dt{color:var(--muted); margin:0}
     #printConfigList dd{margin:0; font-weight:600}
+
+    /* ---- Ventana previa a salir hacia la imprenta ---- */
+    .print-modal-overlay{
+      position:fixed; inset:0; z-index:100; display:flex; align-items:center; justify-content:center;
+      padding:20px; background:rgba(4,9,22,.78); backdrop-filter:blur(5px);
+    }
+    .print-modal-overlay[hidden]{display:none}
+    .print-modal{
+      position:relative; width:100%; max-width:440px; text-align:center;
+      background:linear-gradient(180deg,#122043,#0b1530);
+      border:1px solid var(--glass-border); border-radius:22px; padding:30px 26px 26px;
+      box-shadow:0 30px 80px rgba(0,0,0,.6);
+      animation:bottomCardsFadeIn .25s ease both;
+    }
+    .print-modal h3{margin:0 0 12px; font-size:20px}
+    .print-modal p{margin:0; color:var(--muted); font-size:14.5px; line-height:1.65}
+    .print-modal-close{
+      position:absolute; top:10px; right:12px; width:34px; height:34px; padding:0;
+      background:transparent; border:none; color:var(--muted); font-size:26px; line-height:1; cursor:pointer;
+    }
+    .print-modal-close:hover{color:var(--text)}
+    .print-modal-config-titulo{
+      margin-top:20px; font-size:13px; font-weight:700; color:#dbe4ff;
+      letter-spacing:.3px; text-align:left;
+    }
+    .print-modal-cta{
+      margin-top:22px; width:100%; border:none; border-radius:14px; padding:14px 20px;
+      font-size:15px; font-weight:700; font-family:inherit; cursor:pointer; color:#fff;
+      background:linear-gradient(135deg,#22c55e,#4ade80); transition:all .2s ease;
+    }
+    .print-modal-cta:hover{transform:translateY(-2px); box-shadow:0 8px 24px rgba(34,197,94,.35); filter:brightness(1.06)}
 
     /* ---- Banner de 360imprimir (se ve en las dos pestañas) ---- */
     .promo-print{
@@ -109,8 +131,9 @@
       text-align: center;
     }
     .sub{color:var(--muted); margin-bottom:28px; line-height:1.6; font-size:16px}
-    .grid{display:grid; grid-template-columns:380px 1fr; gap:28px; align-items:stretch}
+    .grid{display:grid; grid-template-columns:380px minmax(0, 1fr); gap:28px; align-items:stretch}
     .card{
+      min-width:0;
       background: linear-gradient(180deg, var(--glass-bg), rgba(255,255,255,0.01));
       border: 1px solid var(--glass-border); border-radius:24px; padding:24px;
       box-shadow: 0 24px 80px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,0.1);
@@ -242,22 +265,39 @@
     .toolbar{display:flex; flex-wrap:wrap; gap:12px; align-items:center; justify-content:space-between; margin-bottom:20px; padding:0 4px;}
     .toolbar-left,.toolbar-right{display:flex; gap:12px; align-items:center; flex-wrap:wrap}
     .page-info{font-weight:600; color:#dfe8ff; font-size:15px; padding: 0 8px;}
+    /* ---- Zoom del lienzo ---- */
+    .zoom-tools{display:flex; align-items:center; gap:4px}
+    .zoom-tools button{
+      width:auto; padding:6px 10px; font-size:15px; line-height:1; border-radius:9px;
+      min-width:34px; font-weight:700;
+    }
+    .zoom-tools .zoom-nivel{font-size:13px; font-weight:600; min-width:62px; padding:7px 8px}
+    .zoom-tools button:disabled{opacity:.4; cursor:not-allowed}
+
     .canvas-wrap{
       position:relative; width:100%; min-height:250px; border-radius:20px; overflow:auto;
       background-color: rgba(0,0,0,0.3);
       background-image: radial-gradient(rgba(255,255,255,0.05) 1px, transparent 1px);
       background-size: 20px 20px;
       border:1px solid var(--glass-border); display:flex;
-      justify-content:center; align-items:flex-start; padding:24px;
+      /* flex-start + margin auto en el hijo: con justify-content:center, al
+         ampliar mas alla del ancho no se puede arrastrar hasta el borde
+         izquierdo. Asi queda centrado igual y el scroll llega a los dos lados. */
+      justify-content:flex-start; align-items:flex-start; padding:24px;
       touch-action: none;
       box-shadow: inset 0 4px 20px rgba(0,0,0,0.4);
     }
+    .canvas-wrap.ampliado{cursor:grab}
+    .canvas-wrap.ampliado.arrastrando{cursor:grabbing}
     .canvas-stack{
-      position:relative; display:inline-block; 
+      /* flex:none es imprescindible: como hijo de un contenedor flex, por
+         defecto se encoge para caber y el zoom no llegaba a ampliar nada. */
+      position:relative; display:inline-block; margin:auto; flex:none;
       box-shadow: 0 0 0 1px rgba(255,255,255,0.1), 0 24px 60px rgba(0,0,0,0.5), 0 12px 24px rgba(0,0,0,0.3);
       border-radius:4px; overflow:hidden; line-height:0;
       transition: transform 0.2s ease;
     }
+    #emptyState{margin:auto}
     canvas{display:block; max-width:100%; height:auto}
     #overlayCanvas{position:absolute; left:0; top:0; z-index:2; cursor:crosshair; touch-action:none}
     .mobile-tools{display:grid; gap:12px; margin-top:20px}
@@ -265,7 +305,7 @@
     .small{font-size:13.5px; color:var(--muted); line-height:1.5}
     .hidden{display:none !important}
     @media (max-width:960px){ 
-      .grid{grid-template-columns:1fr; gap:20px;} 
+      .grid{grid-template-columns:minmax(0, 1fr); gap:20px;} 
       .wrap{padding:20px 16px}
       h1{font-size:28px;}
       .tutorial-header-wrap { gap: 12px; }
@@ -612,6 +652,27 @@
       <button type="button" class="promo-cta" id="promoPrintBtn">Registrarme gratis</button>
     </aside>
 
+    <!-- Ventana que abre "Imprimir este diseño". Explica qué va a pasar y
+         recuerda lo del crédito antes de sacar al usuario de la web; el botón
+         que lleva de verdad a la imprenta está aquí dentro. Va fuera de las
+         vistas para que se superponga a toda la página. -->
+    <div class="print-modal-overlay" id="printModal" hidden>
+      <div class="print-modal" role="dialog" aria-modal="true" aria-labelledby="printModalTitulo">
+        <button class="print-modal-close" id="printModalClose" type="button" aria-label="Cerrar">&times;</button>
+        <h3 id="printModalTitulo">Imprimir tu diseño</h3>
+        <p>
+          Aquí podrás imprimir tu diseño una vez lo hayas terminado de configurar.
+          Si aún no tienes cuenta en 360imprimir, puedes crearla gratis desde el banner
+          de arriba y obtener <strong class="promo-saldo">3 € de crédito</strong> para tus diseños.
+        </p>
+        <div id="printModalConfig" hidden>
+          <div class="print-modal-config-titulo">Configúralo así en la imprenta</div>
+          <dl id="printConfigList"></dl>
+        </div>
+        <button type="button" class="print-modal-cta" id="printModalGo">Ir a imprimir</button>
+      </div>
+    </div>
+
     <section id="view-qr">
     <div class="grid">
       <div class="card">
@@ -657,10 +718,6 @@
             </svg>
             Imprimir este diseño
           </button>
-          <details id="printConfig" hidden>
-            <summary>Cómo configurarlo en la imprenta</summary>
-            <dl id="printConfigList"></dl>
-          </details>
         </div>
         <div class="field" id="customPdfWrapper">
           <input id="pdfFile" type="file" accept="application/pdf,image/jpeg,image/png" />
@@ -769,7 +826,14 @@
             <button class="btn-ghost" id="nextPage" disabled style="width:auto;">Página siguiente ▶</button>
             <span class="page-info" id="pageInfo">Sin archivo cargado</span>
           </div>
-          <div class="toolbar-right small">Selecciona con mouse o con el dedo</div>
+          <div class="toolbar-right">
+            <div class="zoom-tools" id="zoomTools">
+              <button class="btn-ghost zoom-btn" id="zoomOutBtn" type="button" title="Alejar" aria-label="Alejar">−</button>
+              <button class="btn-ghost zoom-nivel" id="zoomResetBtn" type="button" title="Volver al 100 %">100 %</button>
+              <button class="btn-ghost zoom-btn" id="zoomInBtn" type="button" title="Acercar" aria-label="Acercar">+</button>
+            </div>
+            <span class="small">Selecciona con mouse o con el dedo</span>
+          </div>
         </div>
 
         <div class="canvas-wrap" id="canvasWrap">
@@ -790,7 +854,9 @@
           <button class="btn-secondary" id="fitBtn" type="button">Ajustar vista</button>
         </div>
         <div class="mobile-note">
-          En móvil: toca y arrastra sobre el documento para seleccionar el área. Si necesitas más precisión, usa el zoom del navegador y luego pulsa “Ajustar vista”.
+          Toca y arrastra sobre el documento para seleccionar el área. Si necesitas afinar la
+          colocación, usa el <strong>zoom</strong> de arriba: amplía y luego arrastra el fondo
+          para moverte por el documento.
         </div>
 
         <div class="bottom-cards" id="bottomCards">
@@ -922,7 +988,7 @@
     const extraDownloads = $('extraDownloads');
     const statusBox = $('status'), pdfCanvas = $('pdfCanvas'), overlayCanvas = $('overlayCanvas');
     const pdfCtx = pdfCanvas.getContext('2d'), overlayCtx = overlayCanvas.getContext('2d');
-    const canvasStack = $('canvasStack'), emptyState = $('emptyState');
+    const canvasStack = $('canvasStack'), emptyState = $('emptyState'), canvasWrap = $('canvasWrap');
     const resultBox = $('resultBox'), downloadLink = $('downloadLink'), openLink = $('openLink'), savePickerBtn = $('savePickerBtn'), fitBtn = $('fitBtn');
 
     function setDiag(msg){ $('diagText').textContent = msg; }
@@ -1326,10 +1392,78 @@
       pageInfo.textContent = `Página ${state.currentPage} de ${state.totalPages}`;
       canvasStack.style.display = 'inline-block';
       emptyState.style.display = 'none';
+      aplicarZoom();                  // la página nueva se dibuja al zoom actual
       redrawOverlay();
       updateButtons();
       updateSelectionText();
     }
+
+    // ------------------------------------------------------------- zoom
+    // Amplía el lienzo cambiando su ancho en pantalla; los píxeles internos no
+    // cambian. La selección sigue funcionando sola porque getCanvasPoint mide
+    // con getBoundingClientRect, que ya devuelve el tamaño mostrado.
+    const NIVELES_ZOOM = [1, 1.5, 2, 3, 4];
+    let zoomIdx = 0;
+
+    function aplicarZoom(){
+      const z = NIVELES_ZOOM[zoomIdx];
+      $('zoomResetBtn').textContent = Math.round(z * 100) + ' %';
+      $('zoomOutBtn').disabled = zoomIdx === 0;
+      $('zoomInBtn').disabled = zoomIdx === NIVELES_ZOOM.length - 1;
+
+      const base = state.rendered;
+      if (!base || !base.width) return;
+      // El tamaño va en el estilo EN LINEA de cada lienzo porque renderCurrentPage
+      // también lo pone ahí, y una regla del CSS no puede ganarle.
+      const w = Math.round(base.width * z), h = Math.round(base.height * z);
+      for (const c of [pdfCanvas, overlayCanvas]) {
+        c.style.width = w + 'px';
+        c.style.height = h + 'px';
+        c.style.maxWidth = z === 1 ? '' : 'none';
+      }
+      canvasStack.style.width = w + 'px';
+      canvasWrap.classList.toggle('ampliado', z !== 1);
+    }
+
+    // Al cambiar de nivel se conserva el punto que estaba en el centro, para
+    // no perder de vista la zona que se estaba ajustando.
+    function cambiarZoom(nuevo){
+      const antes = NIVELES_ZOOM[zoomIdx];
+      const cx = (canvasWrap.scrollLeft + canvasWrap.clientWidth / 2);
+      const cy = (canvasWrap.scrollTop + canvasWrap.clientHeight / 2);
+      zoomIdx = Math.max(0, Math.min(NIVELES_ZOOM.length - 1, nuevo));
+      aplicarZoom();
+      const f = NIVELES_ZOOM[zoomIdx] / antes;
+      canvasWrap.scrollLeft = cx * f - canvasWrap.clientWidth / 2;
+      canvasWrap.scrollTop  = cy * f - canvasWrap.clientHeight / 2;
+    }
+
+    $('zoomInBtn').addEventListener('click', () => cambiarZoom(zoomIdx + 1));
+    $('zoomOutBtn').addEventListener('click', () => cambiarZoom(zoomIdx - 1));
+    $('zoomResetBtn').addEventListener('click', () => cambiarZoom(0));
+
+    // Ampliado, el documento no cabe: se arrastra con el ratón desde el fondo.
+    // Sobre el lienzo no, que ahí se dibuja la selección.
+    (function habilitarArrastre(){
+      let arrastrando = false, x0 = 0, y0 = 0, sx = 0, sy = 0;
+      canvasWrap.addEventListener('mousedown', (e) => {
+        if (NIVELES_ZOOM[zoomIdx] === 1 || e.target.tagName === 'CANVAS') return;
+        arrastrando = true; x0 = e.clientX; y0 = e.clientY;
+        sx = canvasWrap.scrollLeft; sy = canvasWrap.scrollTop;
+        canvasWrap.classList.add('arrastrando');
+        e.preventDefault();
+      });
+      window.addEventListener('mousemove', (e) => {
+        if (!arrastrando) return;
+        canvasWrap.scrollLeft = sx - (e.clientX - x0);
+        canvasWrap.scrollTop  = sy - (e.clientY - y0);
+      });
+      window.addEventListener('mouseup', () => {
+        arrastrando = false; canvasWrap.classList.remove('arrastrando');
+      });
+    })();
+
+    aplicarZoom();
 
     function normalizeRect(r){ return { x: Math.min(r.x, r.x + r.w), y: Math.min(r.y, r.y + r.h), w: Math.abs(r.w), h: Math.abs(r.h) }; }
 
@@ -2005,18 +2139,18 @@
     // dataset de la opción y la abre el script, así no se lee al pasar el
     // ratón ni con "copiar dirección del enlace".
     const printBox = $('printBox'), printLinkBtn = $('printLinkBtn');
-    const printConfig = $('printConfig'), printConfigList = $('printConfigList');
+    const printModal = $('printModal'), printModalConfig = $('printModalConfig');
+    const printConfigList = $('printConfigList');
     let enlaceImpresionActual = null;
 
     function refrescarImpresion(){
       const op = pdfSource.options[pdfSource.selectedIndex];
       enlaceImpresionActual = (op && op.dataset.imprimir) || null;
       printBox.hidden = !enlaceImpresionActual;
-      if (!enlaceImpresionActual) return;
+      if (!enlaceImpresionActual) { cerrarPrintModal(); return; }
 
       const config = (op.dataset.imprimirConfig || '').split(/\r?\n/).map(l => l.trim()).filter(Boolean);
-      printConfig.hidden = !config.length;
-      printConfig.open = false;
+      printModalConfig.hidden = !config.length;
       printConfigList.replaceChildren();
       for (const linea of config) {
         // "Gramaje: Couché Mate 90g" -> etiqueta + valor; sin ":" va entero
@@ -2034,9 +2168,29 @@
       }
     }
 
-    printLinkBtn.addEventListener('click', () => {
+    // Doble botón: el de la ficha abre la ventana con la explicación, y el de
+    // dentro es el que lleva a la imprenta.
+    function abrirPrintModal(){
+      if (!enlaceImpresionActual) return;
+      printModal.hidden = false;
+      document.body.style.overflow = 'hidden';
+      $('printModalGo').focus();
+    }
+    function cerrarPrintModal(){
+      if (printModal.hidden) return;
+      printModal.hidden = true;
+      document.body.style.overflow = '';
+    }
+
+    printLinkBtn.addEventListener('click', abrirPrintModal);
+    $('printModalClose').addEventListener('click', cerrarPrintModal);
+    printModal.addEventListener('click', (e) => { if (e.target === printModal) cerrarPrintModal(); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') cerrarPrintModal(); });
+    $('printModalGo').addEventListener('click', () => {
       if (enlaceImpresionActual) window.open(enlaceImpresionActual, '_blank', 'noopener');
+      cerrarPrintModal();
     });
+
     pdfSource.addEventListener('change', refrescarImpresion);
 
     // la galería llega por red: hasta que no está, las opciones no traen el
