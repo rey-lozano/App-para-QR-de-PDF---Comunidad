@@ -34,6 +34,58 @@
       --glass-bg: rgba(255, 255, 255, 0.03);
       --glass-border: rgba(255, 255, 255, 0.08);
     }
+    /* ---- Botón "Imprimir este diseño" + su configuración ---- */
+    .print-box{margin:-8px 0 18px}
+    .print-btn{
+      display:inline-flex; align-items:center; gap:8px; width:auto;
+      background:rgba(74,222,128,.10); color:#86efac; border:1px solid rgba(74,222,128,.32);
+      border-radius:12px; padding:10px 16px; font-size:14px; font-weight:600;
+      font-family:inherit; cursor:pointer; transition:all .2s ease;
+    }
+    .print-btn:hover{background:rgba(74,222,128,.18); border-color:rgba(74,222,128,.5); transform:translateY(-1px)}
+    #printConfig{margin-top:10px}
+    #printConfig summary{
+      cursor:pointer; color:var(--muted); font-size:13px; padding:4px 0;
+      list-style:none; display:inline-flex; align-items:center; gap:6px;
+    }
+    #printConfig summary::-webkit-details-marker{display:none}
+    #printConfig summary::before{content:'▸'; transition:transform .2s ease; display:inline-block}
+    #printConfig[open] summary::before{transform:rotate(90deg)}
+    #printConfig summary:hover{color:var(--text)}
+    #printConfigList{
+      margin:8px 0 0; padding:12px 14px; display:grid; gap:6px 12px;
+      grid-template-columns:auto 1fr; font-size:13px; line-height:1.5;
+      background:rgba(0,0,0,.22); border:1px solid var(--glass-border); border-radius:12px;
+    }
+    #printConfigList dt{color:var(--muted); margin:0}
+    #printConfigList dd{margin:0; font-weight:600}
+
+    /* ---- Banner de 360imprimir (se ve en las dos pestañas) ---- */
+    .promo-print{
+      display:flex; align-items:center; gap:18px; flex-wrap:wrap;
+      background:linear-gradient(135deg, rgba(255,255,255,.07), rgba(255,255,255,.02));
+      border:1px solid var(--glass-border); border-radius:18px;
+      padding:14px 18px; margin:0 0 22px;
+    }
+    .promo-print .promo-logo{
+      background:#fff; border-radius:10px; padding:8px 12px; flex:none; line-height:0;
+    }
+    .promo-print .promo-logo img{height:26px; width:auto; display:block}
+    .promo-print .promo-texto{flex:1 1 260px; min-width:0; font-size:14px; line-height:1.5}
+    .promo-print .promo-texto strong{display:block; font-size:15px; margin-bottom:2px}
+    .promo-print .promo-saldo{color:#86efac; font-weight:700}
+    .promo-print .promo-cta{
+      flex:none; background:linear-gradient(135deg, var(--accent), var(--accent2));
+      color:#fff; border:none; border-radius:12px; padding:11px 20px; width:auto;
+      font-size:14px; font-weight:700; font-family:inherit; cursor:pointer;
+      transition:all .2s ease; white-space:nowrap;
+    }
+    .promo-print .promo-cta:hover{transform:translateY(-2px); box-shadow:0 6px 20px rgba(95,141,255,.4); filter:brightness(1.1)}
+    @media (max-width:560px){
+      .promo-print{gap:12px; padding:14px}
+      .promo-print .promo-cta{width:100%}
+    }
+
     *{box-sizing:border-box}
     body{
       margin:0; font-family:'Inter',system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
@@ -547,6 +599,19 @@
       <button class="section-tab" data-view="tarjetas">Tarjetas</button>
     </nav>
 
+    <!-- Va fuera de las dos vistas a propósito: así se ve tanto en el
+         generador de QR como en las tarjetas. El enlace no está en el href
+         para que no se lea el código de invitación al pasar el ratón ni al
+         copiar el enlace; lo abre el script. -->
+    <aside class="promo-print">
+      <span class="promo-logo"><img src="img/360imprimir-logo.png" alt="360imprimir" loading="lazy"></span>
+      <div class="promo-texto">
+        <strong>¿Ya tienes tu diseño? Imprímelo con 360imprimir</strong>
+        Regístrate gratis y te llevas <span class="promo-saldo">3 € de saldo</span> para tu primer pedido.
+      </div>
+      <button type="button" class="promo-cta" id="promoPrintBtn">Registrarme gratis</button>
+    </aside>
+
     <section id="view-qr">
     <div class="grid">
       <div class="card">
@@ -579,6 +644,23 @@
         </div>
         <div id="predefinedActions" style="display:none; margin-top:-8px; margin-bottom:18px;">
            <a id="downloadOriginalBtn" class="action-link secondary" href="#" download style="padding: 10px 15px; font-size: 14px;">Descargar este PDF original sin modificar</a>
+        </div>
+
+        <!-- Solo aparece si el diseño elegido trae enlace de impresión desde el
+             panel. La configuración se despliega para no ocupar sitio si no
+             interesa. -->
+        <div id="printBox" class="print-box" hidden>
+          <button type="button" id="printLinkBtn" class="print-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/>
+            </svg>
+            Imprimir este diseño
+          </button>
+          <details id="printConfig" hidden>
+            <summary>Cómo configurarlo en la imprenta</summary>
+            <dl id="printConfigList"></dl>
+          </details>
         </div>
         <div class="field" id="customPdfWrapper">
           <input id="pdfFile" type="file" accept="application/pdf,image/jpeg,image/png" />
@@ -642,9 +724,14 @@
           </div>
         </div>
 
-        <div class="diag">
-          <div><strong>Selección actual:</strong> <span id="selText">Haz una selección sobre el PDF.</span></div>
-          <div style="margin-top:8px"><strong>Diagnóstico:</strong> <span id="diagText">Esperando acciones.</span></div>
+        <!-- La caja de "Selección actual / Diagnóstico" se retiró: eran datos
+             de depuración (coordenadas en píxeles) que no le dicen nada al
+             usuario. Los dos <span> siguen existiendo ocultos porque el resto
+             del código les escribe el estado; así no hay que tocar cada sitio
+             que los usa. -->
+        <div class="diag" hidden>
+          <span id="selText"></span>
+          <span id="diagText"></span>
         </div>
 
         <div style="display:grid; gap:10px; margin-top:16px;">
@@ -1869,10 +1956,17 @@
     async function cargarGaleriaRemota(){
       try {
         const cab = { apikey: GALERIA.key, Authorization: 'Bearer ' + GALERIA.key };
-        const [rc, rd] = await Promise.all([
+        const disenosUrl = (campos) =>
+          GALERIA.url + '/rest/v1/disenos_qr?select=' + campos + '&visible=is.true&order=orden';
+
+        const [rc, rd0] = await Promise.all([
           fetch(GALERIA.url + '/rest/v1/disenos_qr_categorias?select=id,nombre&visible=is.true&order=orden', { headers: cab }),
-          fetch(GALERIA.url + '/rest/v1/disenos_qr?select=categoria_id,nombre,url&visible=is.true&order=orden', { headers: cab })
+          fetch(disenosUrl('categoria_id,nombre,url,enlace_impresion,config_impresion'), { headers: cab })
         ]);
+        // Si las columnas de impresión todavía no existen en la base, PostgREST
+        // devuelve 400. Se reintenta sin ellas para que la galería siga
+        // funcionando igual hasta que se ejecute la migración.
+        const rd = rd0.ok ? rd0 : await fetch(disenosUrl('categoria_id,nombre,url'), { headers: cab });
         if (!rc.ok || !rd.ok) return;
         const cats = await rc.json(), items = await rd.json();
         if (!Array.isArray(cats) || !Array.isArray(items) || !items.length) return;
@@ -1887,6 +1981,10 @@
             const op = document.createElement('option');
             op.value = it.url;
             op.textContent = it.nombre;
+            // el enlace y la configuración de impresión viajan con la opción,
+            // para no volver a consultar la base al cambiar de diseño
+            if (it.enlace_impresion) op.dataset.imprimir = it.enlace_impresion;
+            if (it.config_impresion) op.dataset.imprimirConfig = it.config_impresion;
             grupo.appendChild(op);
           }
           frag.appendChild(grupo);
@@ -1901,7 +1999,64 @@
       }
     }
 
-    cargarGaleriaRemota();
+    // -------------------------------------------------- imprimir el diseño
+    // El botón solo existe para los diseños a los que se les ha puesto un
+    // enlace en el panel. La URL no se escribe en el HTML: se guarda en el
+    // dataset de la opción y la abre el script, así no se lee al pasar el
+    // ratón ni con "copiar dirección del enlace".
+    const printBox = $('printBox'), printLinkBtn = $('printLinkBtn');
+    const printConfig = $('printConfig'), printConfigList = $('printConfigList');
+    let enlaceImpresionActual = null;
+
+    function refrescarImpresion(){
+      const op = pdfSource.options[pdfSource.selectedIndex];
+      enlaceImpresionActual = (op && op.dataset.imprimir) || null;
+      printBox.hidden = !enlaceImpresionActual;
+      if (!enlaceImpresionActual) return;
+
+      const config = (op.dataset.imprimirConfig || '').split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+      printConfig.hidden = !config.length;
+      printConfig.open = false;
+      printConfigList.replaceChildren();
+      for (const linea of config) {
+        // "Gramaje: Couché Mate 90g" -> etiqueta + valor; sin ":" va entero
+        const corte = linea.indexOf(':');
+        const dt = document.createElement('dt');
+        const dd = document.createElement('dd');
+        if (corte > 0) {
+          dt.textContent = linea.slice(0, corte).trim();
+          dd.textContent = linea.slice(corte + 1).trim();
+        } else {
+          dt.textContent = '·';
+          dd.textContent = linea;
+        }
+        printConfigList.append(dt, dd);
+      }
+    }
+
+    printLinkBtn.addEventListener('click', () => {
+      if (enlaceImpresionActual) window.open(enlaceImpresionActual, '_blank', 'noopener');
+    });
+    pdfSource.addEventListener('change', refrescarImpresion);
+
+    // la galería llega por red: hasta que no está, las opciones no traen el
+    // enlace, así que se evalúa el botón cuando termina de cargarse
+    cargarGaleriaRemota().then(refrescarImpresion);
+
+    // ------------------------------------------------ banner de 360imprimir
+    // El enlace de invitación no va en el href: así no se ve al pasar el ratón
+    // ni con "copiar dirección del enlace", y no aparece tal cual al mirar el
+    // código fuente. Va codificado en base64 sólo para que no se pueda buscar
+    // el código a simple vista; NO es seguridad: quien abra las herramientas
+    // de desarrollo lo verá igual. No hay forma de ocultarlo del todo en una
+    // web estática.
+    const promoPrintBtn = $('promoPrintBtn');
+    if (promoPrintBtn) {
+      promoPrintBtn.addEventListener('click', () => {
+        const destino = atob('aHR0cHM6Ly93d3cuMzYwaW1wcmltaXIuZXMvaW52aXRlL0MwRDAzMzE3NzgxNTU4MDY=');
+        window.open(destino, '_blank', 'noopener');
+      });
+    }
 
 
 

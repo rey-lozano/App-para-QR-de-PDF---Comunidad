@@ -32,17 +32,19 @@
   h2{font-size:17px; margin:0 0 16px; letter-spacing:.2px}
   .sub{color:var(--muted); font-size:14px; margin:0 0 24px}
   label{display:block; font-size:13px; font-weight:600; color:#dbe4ff; margin-bottom:8px; letter-spacing:.3px}
-  input, select{
+  input, select, textarea{
     width:100%; background:rgba(0,0,0,.22); color:var(--text); border:1px solid var(--glass-border);
     border-radius:12px; padding:12px 14px; font-size:15px; font-family:inherit; outline:none;
     transition:all .2s ease;
   }
-  input:focus, select:focus{border-color:var(--accent); background:rgba(11,21,48,.8); box-shadow:0 0 0 4px rgba(95,141,255,.15)}
+  textarea{resize:vertical; line-height:1.5; min-height:88px}
+  input:focus, select:focus, textarea:focus{border-color:var(--accent); background:rgba(11,21,48,.8); box-shadow:0 0 0 4px rgba(95,141,255,.15)}
   input[type=file]::file-selector-button{
     background:var(--glass-bg); border:1px solid var(--glass-border); color:#fff; border-radius:8px;
     padding:6px 12px; margin-right:12px; cursor:pointer; font-weight:500; font-family:inherit;
   }
   .field{margin-bottom:16px}
+  label .sub{margin:0; font-weight:500}
   .row{display:grid; grid-template-columns:1fr 1fr; gap:14px}
   @media (max-width:640px){ .row{grid-template-columns:1fr} }
   .pw{position:relative}
@@ -86,6 +88,7 @@
   .tag-repo{background:rgba(251,191,36,.15); color:#fcd34d; border:1px solid rgba(251,191,36,.3)}
   .tag-storage{background:rgba(95,141,255,.15); color:#a5c0ff; border:1px solid rgba(95,141,255,.3)}
   .tag-oculto{background:rgba(255,255,255,.08); color:var(--muted); border:1px solid var(--glass-border)}
+  .tag-imprime{background:rgba(74,222,128,.14); color:#86efac; border:1px solid rgba(74,222,128,.32)}
   .acciones{display:flex; gap:6px; flex-wrap:wrap}
   .vacio{padding:14px; color:var(--muted); font-size:14px; border-top:1px solid rgba(255,255,255,.07)}
   .previsualizacion{padding:0 14px 14px; border-top:1px solid rgba(255,255,255,.07)}
@@ -182,6 +185,32 @@
         <label for="nuevaCat">Nombre de la categoría nueva</label>
         <input id="nuevaCat" type="text" placeholder="Ej: Flyers NATURKIN" />
       </div>
+
+      <div class="field">
+        <label for="enlaceImpresion">Enlace de impresión <span class="sub">(opcional)</span></label>
+        <input id="enlaceImpresion" type="url" placeholder="https://www.360imprimir.es/..." />
+        <div class="nota">
+          A dónde mandas al usuario para imprimir <strong>este</strong> diseño. Si lo dejas
+          vacío, en el generador no le sale botón de imprimir. Lo puedes poner o cambiar
+          después desde la lista de abajo.
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="configImpresion">Configuración de impresión <span class="sub">(opcional)</span></label>
+        <textarea id="configImpresion" rows="7" placeholder="Tipo de plegado: Doble en U
+Forma: Rectangular
+Orientación: Vertical - Pliegue en el Lado Más Grande
+Tamaño: Más Populares
+Dimensión Plegada: DL (99 x 210 mm)
+Tipo de Material: Couché Mate
+Gramaje: Couché Mate 90g"></textarea>
+        <div class="nota">
+          Lo que el usuario tiene que elegir en la imprenta para que le salga igual.
+          <strong>Una línea por dato.</strong> Se muestra junto al botón de imprimir.
+        </div>
+      </div>
+
       <button class="btn-primary" id="subirBtn">Subir a la galería</button>
       <div class="barra hidden" id="barraWrap"><span id="barra"></span></div>
     </section>
@@ -201,6 +230,7 @@
     <h3 id="modalTitulo"></h3>
     <p id="modalTexto"></p>
     <input id="modalInput" type="text" class="hidden" />
+    <textarea id="modalTextarea" rows="8" class="hidden"></textarea>
     <select id="modalSelect" class="hidden"></select>
     <div class="acciones">
       <button class="btn-ghost" id="modalCancelar">Cancelar</button>
@@ -239,20 +269,38 @@
   }
   function limpiarAviso(){ $('statusBox').classList.add('hidden'); }
 
+  // Un enlace vacio se guarda como null, no como cadena vacia: la restriccion
+  // de la tabla solo admite null o una URL http(s) de verdad.
+  function normalizarEnlace(v){
+    const t = (v || '').trim();
+    if (!t) return null;
+    return /^https?:\/\/.+/i.test(t) ? t : null;
+  }
+
+  // La configuracion se guarda con una linea por dato, sin lineas en blanco
+  // ni espacios sobrantes, que es como la pinta el generador.
+  function normalizarConfig(v){
+    const lineas = (v || '').split(/\r?\n/).map(x => x.trim()).filter(Boolean);
+    return lineas.length ? lineas.join('\n') : null;
+  }
+
   // Modal propio: el navegador no pinta prompt() ni confirm() aquí.
   // valor    -> pide texto      opciones -> pide elegir de una lista
   // ninguno  -> solo confirmar
-  function preguntar({ titulo, texto, valor = null, opciones = null, aceptar = 'Aceptar', peligro = false }){
+  // multilinea -> usa el textarea en vez del input de una linea
+  function preguntar({ titulo, texto, valor = null, opciones = null, aceptar = 'Aceptar', peligro = false, multilinea = false }){
     return new Promise(resolve => {
       $('modalTitulo').textContent = titulo;
       $('modalTexto').textContent = texto || '';
       $('modalTexto').classList.toggle('hidden', !texto);
 
-      const input = $('modalInput');
       const select = $('modalSelect');
-      const pideTexto = valor !== null && !opciones;
       const pideOpcion = Array.isArray(opciones) && opciones.length > 0;
-      input.classList.toggle('hidden', !pideTexto);
+      const pideTexto = valor !== null && !opciones;
+      // el campo de texto es el input o el textarea segun se pida multilinea
+      const input = (pideTexto && multilinea) ? $('modalTextarea') : $('modalInput');
+      $('modalInput').classList.toggle('hidden', !(pideTexto && !multilinea));
+      $('modalTextarea').classList.toggle('hidden', !(pideTexto && multilinea));
       select.classList.toggle('hidden', !pideOpcion);
       if (pideTexto) input.value = valor;
       if (pideOpcion) {
@@ -283,7 +331,13 @@
         cerrar(true);
       };
       const alCancelar = () => cerrar(null);
-      const alTeclear = e => { if (e.key === 'Enter') { e.preventDefault(); alAceptar(); } };
+      // en el textarea el Enter hace falta para saltar de linea: ahi solo
+      // acepta con Ctrl+Enter
+      const alTeclear = e => {
+        if (e.key !== 'Enter') return;
+        if (multilinea && !e.ctrlKey && !e.metaKey) return;
+        e.preventDefault(); alAceptar();
+      };
       ok.addEventListener('click', alAceptar);
       $('modalCancelar').addEventListener('click', alCancelar);
       input.addEventListener('keydown', alTeclear);
@@ -396,11 +450,14 @@
           <span class="item-name">${escapar(d.nombre)}</span>
           <span class="tag ${d.origen === 'repo' ? 'tag-repo' : 'tag-storage'}">${d.origen === 'repo' ? 'en el repo' : 'subido'}</span>
           ${d.visible ? '' : '<span class="tag tag-oculto">oculto</span>'}
+          ${d.enlace_impresion ? '<span class="tag tag-imprime">imprimible</span>' : ''}
           <div class="acciones">
             <button class="btn-ghost mini" data-accion="ver" data-id="${d.id}">Ver</button>
             <button class="btn-ghost mini" data-accion="subir-orden" data-id="${d.id}" ${i === 0 ? 'disabled' : ''}>↑</button>
             <button class="btn-ghost mini" data-accion="bajar-orden" data-id="${d.id}" ${i === suyos.length-1 ? 'disabled' : ''}>↓</button>
             <button class="btn-ghost mini" data-accion="renombrar" data-id="${d.id}">Renombrar</button>
+            <button class="btn-ghost mini" data-accion="imprimir-enlace" data-id="${d.id}">Enlace de impresión</button>
+            <button class="btn-ghost mini" data-accion="imprimir-config" data-id="${d.id}">Configuración</button>
             <button class="btn-ghost mini" data-accion="mover" data-id="${d.id}">Mover</button>
             <button class="btn-ghost mini" data-accion="visible" data-id="${d.id}">${d.visible ? 'Ocultar' : 'Mostrar'}</button>
             <button class="btn-danger mini" data-accion="borrar" data-id="${d.id}">Borrar</button>
@@ -457,6 +514,34 @@
     if (accion === 'visible') {
       await guardar(sb.from('disenos_qr').update({ visible: !d.visible }).eq('id', id));
       return aviso(d.visible ? 'Diseño oculto en la galería.' : 'Diseño visible en la galería.');
+    }
+
+    if (accion === 'imprimir-enlace') {
+      const valor = await preguntar({
+        titulo: 'Enlace de impresión',
+        texto: 'A dónde mandas al usuario para imprimir este diseño. Déjalo vacío para quitar el botón.',
+        valor: d.enlace_impresion || ''
+      });
+      if (valor === null) return;                       // canceló
+      const enlace = normalizarEnlace(valor);
+      if (valor.trim() && !enlace) {
+        return aviso('El enlace no es válido. Tiene que empezar por http:// o https://', 'bad');
+      }
+      await guardar(sb.from('disenos_qr').update({ enlace_impresion: enlace }).eq('id', id));
+      return aviso(enlace ? 'Enlace de impresión guardado.' : 'Enlace de impresión quitado.');
+    }
+
+    if (accion === 'imprimir-config') {
+      const valor = await preguntar({
+        titulo: 'Configuración de impresión',
+        texto: 'Lo que el usuario debe elegir en la imprenta. Una línea por dato. Déjalo vacío para quitarlo.',
+        valor: d.config_impresion || '',
+        multilinea: true
+      });
+      if (valor === null) return;
+      const config = normalizarConfig(valor);
+      await guardar(sb.from('disenos_qr').update({ config_impresion: config }).eq('id', id));
+      return aviso(config ? 'Configuración de impresión guardada.' : 'Configuración de impresión quitada.');
     }
 
     if (accion === 'mover') {
@@ -648,6 +733,13 @@
     let categoriaId = $('categoria').value;
     const nombre = $('nombre').value.trim() || archivos[0].name.replace(/\.[^.]+$/, '');
 
+    // se comprueba antes de subir nada: si el enlace esta mal, la base lo
+    // rechazaria al final y el archivo se quedaria huerfano en Storage
+    const enlaceCrudo = $('enlaceImpresion').value.trim();
+    if (enlaceCrudo && !normalizarEnlace(enlaceCrudo)) {
+      return aviso('El enlace de impresión no es válido. Tiene que empezar por http:// o https://', 'bad');
+    }
+
     const btn = $('subirBtn');
     btn.disabled = true;
     btn.textContent = 'Subiendo...';
@@ -681,7 +773,9 @@
       const orden = 1 + Math.max(0, ...disenos.filter(x => x.categoria_id === categoriaId).map(x => x.orden));
       const { error: errFila } = await sb.from('disenos_qr').insert({
         categoria_id: categoriaId, nombre, url: pub.publicUrl,
-        origen: 'storage', storage_path: ruta, orden
+        origen: 'storage', storage_path: ruta, orden,
+        enlace_impresion: normalizarEnlace($('enlaceImpresion').value),
+        config_impresion: normalizarConfig($('configImpresion').value)
       });
       if (errFila) {
         await sb.storage.from(BUCKET).remove([ruta]); // no dejar el archivo huérfano
@@ -690,6 +784,7 @@
       $('barra').style.width = '100%';
 
       $('archivo').value = ''; $('nombre').value = ''; $('nuevaCat').value = '';
+      $('enlaceImpresion').value = ''; $('configImpresion').value = '';
       archivos = []; pintarArchivos();
       await cargarTodo();
       aviso('«' + nombre + '» ya está en la galería.');
