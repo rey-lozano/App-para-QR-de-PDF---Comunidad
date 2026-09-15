@@ -211,6 +211,18 @@
       background:rgba(0,0,0,.2); border:1px solid var(--glass-border); cursor:pointer;
     }
     .hex{flex:1; min-width:104px; text-transform:uppercase; font-family:ui-monospace, monospace}
+    .aviso-escanear{
+      margin-top:16px; padding:14px 16px; border-radius:14px;
+      background:rgba(251,191,36,.12); border:1px solid rgba(251,191,36,.38);
+      color:#fde68a; font-size:13.5px; line-height:1.55; text-align:left;
+    }
+    .aviso-escanear strong{color:#fcd34d; display:block; margin-bottom:4px; font-size:14px}
+    .aviso-escanear-mini{
+      margin:0 0 16px; padding:11px 13px; border-radius:12px;
+      background:rgba(251,191,36,.12); border:1px solid rgba(251,191,36,.38);
+      color:#fde68a; font-size:13px; line-height:1.5; text-align:left;
+    }
+    .aviso-escanear-mini strong{color:#fcd34d}
     .aviso-contraste{
       margin-top:10px; padding:10px 12px; border-radius:12px; font-size:12.5px; line-height:1.45;
       background:rgba(251,191,36,.12); border:1px solid rgba(251,191,36,.35); color:#fcd34d;
@@ -696,6 +708,10 @@
           <div class="print-modal-config-titulo">Configúralo así en la imprenta</div>
           <dl id="printConfigList"></dl>
         </div>
+        <p class="aviso-escanear-mini hidden" id="avisoEscanearImprenta">
+          <strong>¿Has escaneado ya el QR?</strong> Compruébalo con el móvil sobre el archivo
+          final antes de enviarlo. Una vez impreso no hay vuelta atrás.
+        </p>
         <button type="button" class="print-modal-cta" id="printModalGo">Ir a imprimir</button>
 
         <!-- Segundo camino, para quien todavía no es cliente de la imprenta.
@@ -877,6 +893,12 @@
             <button id="savePickerBtn" class="btn-secondary" style="display:none;">Guardar con selector del sistema</button>
           </div>
           <div class="result-actions" id="extraDownloads"></div>
+          <div class="aviso-escanear hidden" id="avisoEscanear">
+            <strong>Escanea el QR antes de mandarlo a imprenta</strong>
+            Abre el archivo que acabas de descargar y apúntale con la cámara del móvil.
+            Es un minuto, y es la única forma de saber que funciona antes de pagar la tirada.
+            Si vas a imprimirlo pequeño, comprueba también que se lee al tamaño real.
+          </div>
         </div>
       </div>
 
@@ -1920,6 +1942,9 @@
 
       guardarPaginaActual();
       const colocadas = cajasUtiles();
+      // Para saber luego si hay que recordar lo de escanear: si el archivo no
+      // lleva QR, el aviso sobra y solo hace ruido.
+      state.salidaLlevaQr = colocadas.some(c => c.kind === 'qr');
       if (!colocadas.length) {
         throw new Error('No hay nada que estampar: marca QR, teléfono o dirección web, rellena su dato y dibuja el recuadro.');
       }
@@ -2095,6 +2120,7 @@
       cleanupOutput();
       state.outputPdfBlob = blob; // always keep the PDF master
       resultBox.classList.add('show');
+      $('avisoEscanear').classList.toggle('hidden', !state.salidaLlevaQr);
       await applyFormatToOutput(blob);
     }
 
@@ -2408,6 +2434,7 @@
     // dentro es el que lleva a la imprenta.
     function abrirPrintModal(){
       if (!enlaceImpresionActual) return;
+      $('avisoEscanearImprenta').classList.toggle('hidden', !cajasUtiles().some(c => c.kind === 'qr'));
       printModal.hidden = false;
       document.body.style.overflow = 'hidden';
       $('printModalGo').focus();
