@@ -197,6 +197,24 @@
       accent-color:var(--accent); box-shadow:none; cursor:pointer;
     }
     .label-hint{font-weight:400; color:var(--muted); font-size:13px; letter-spacing:0}
+    .fila-color{display:flex; align-items:center; gap:10px; flex-wrap:wrap}
+    .muestras{display:flex; gap:7px; flex-wrap:wrap; flex:1 0 100%}
+    .muestra{
+      width:28px; height:28px; padding:0; flex:0 0 auto; border-radius:9px; cursor:pointer;
+      background:var(--c); border:2px solid rgba(255,255,255,.18);
+      transition:transform .15s ease, border-color .15s ease;
+    }
+    .muestra:hover{transform:translateY(-2px); border-color:rgba(255,255,255,.45)}
+    .muestra.is-on{border-color:#fff; box-shadow:0 0 0 3px rgba(95,141,255,.45)}
+    input[type="color"]{
+      width:44px; height:38px; flex:0 0 auto; padding:3px; border-radius:10px;
+      background:rgba(0,0,0,.2); border:1px solid var(--glass-border); cursor:pointer;
+    }
+    .hex{flex:1; min-width:104px; text-transform:uppercase; font-family:ui-monospace, monospace}
+    .aviso-contraste{
+      margin-top:10px; padding:10px 12px; border-radius:12px; font-size:12.5px; line-height:1.45;
+      background:rgba(251,191,36,.12); border:1px solid rgba(251,191,36,.35); color:#fcd34d;
+    }
     .place-target{
       display:flex; align-items:center; gap:12px; margin-top:12px; padding:10px 12px;
       border:1px dashed var(--glass-border); border-radius:14px; background:rgba(0,0,0,0.15);
@@ -775,6 +793,29 @@
             <input id="qrLink" type="text" placeholder="https://tusitio.com/registro" />
           </div>
           <div class="field field-symmetric">
+            <label for="qrColor">Color del QR</label>
+            <div class="fila-color">
+              <div class="muestras" id="qrMuestras"></div>
+              <input id="qrColor" type="color" value="#000000" aria-label="Elegir un color cualquiera" />
+              <input id="qrColorHex" class="hex" type="text" value="#000000" maxlength="7" spellcheck="false" aria-label="Código del color" />
+            </div>
+          </div>
+          <div class="field field-symmetric">
+            <label for="qrBg">Fondo del QR</label>
+            <div class="fila-color">
+              <label class="check-option is-on" id="qrBgOption" style="flex:1; min-width:180px">
+                <input type="checkbox" id="qrBgOn" checked />
+                <span>Con fondo</span>
+              </label>
+              <input id="qrBg" type="color" value="#FFFFFF" aria-label="Color del fondo" />
+              <input id="qrBgHex" class="hex" type="text" value="#FFFFFF" maxlength="7" spellcheck="false" aria-label="Código del fondo" />
+            </div>
+            <p class="label-hint" style="display:block; margin-top:8px">
+              Quítale el fondo para que el QR se pose directamente sobre el diseño.
+            </p>
+            <div id="qrContraste" class="aviso-contraste hidden"></div>
+          </div>
+          <div class="field field-symmetric">
             <label for="qrMargin">Margen interno del QR</label>
             <input id="qrMargin" type="number" min="0" max="30" value="4" />
           </div>
@@ -1003,6 +1044,8 @@
 
     const pdfSource = $('pdfSource'), customPdfWrapper = $('customPdfWrapper'), pdfFile = $('pdfFile'), qrLink = $('qrLink'), qrMargin = $('qrMargin'), useQr = $('useQr'), usePhone = $('usePhone'), phoneNumber = $('phoneNumber'), phoneExtra = $('phoneExtra'), qrFields = $('qrFields'), phoneFields = $('phoneFields'), placeTarget = $('placeTarget'),
           useWeb = $('useWeb'), webText = $('webText'), webFields = $('webFields');
+    const qrColor = $('qrColor'), qrColorHex = $('qrColorHex'), qrMuestras = $('qrMuestras');
+    const qrBg = $('qrBg'), qrBgHex = $('qrBgHex'), qrBgOn = $('qrBgOn'), qrContraste = $('qrContraste');
     const previewBtn = $('previewBtn'), generateBtn = $('generateBtn'), clearBtn = $('clearBtn'), resetBtn = $('resetBtn');
     const prevPage = $('prevPage'), nextPage = $('nextPage'), pageInfo = $('pageInfo');
     const extraDownloads = $('extraDownloads');
@@ -1044,10 +1087,95 @@
       return { qr: useQr.checked, phone: usePhone.checked, web: useWeb.checked };
     }
 
+    // ------------------------------------------------------ color del QR
+    const COLOR_QR_POR_DEFECTO = '#000000';
+    const COLOR_FONDO_POR_DEFECTO = '#FFFFFF';
+
+    const PALETA = [
+      ['#000000', 'Negro'], ['#0B1530', 'Azul noche'], ['#1A56DB', 'Azul TOMAYA'],
+      ['#0E7490', 'Turquesa'], ['#14532D', 'Verde bosque'], ['#B91C1C', 'Rojo'],
+      ['#C9A227', 'Dorado'], ['#5B21B6', 'Morado'], ['#FFFFFF', 'Blanco'],
+    ];
+
+    qrMuestras.innerHTML = PALETA.map(([c, nombre]) =>
+      `<button type="button" class="muestra" data-color="${c}" style="--c:${c}" title="${nombre}" aria-label="${nombre}"></button>`
+    ).join('');
+
+    function normalizaHex(v, porDefecto){
+      let s = String(v || '').trim();
+      if (!s.startsWith('#')) s = '#' + s;
+      if (/^#[0-9a-fA-F]{3}$/.test(s)) s = '#' + s[1] + s[1] + s[2] + s[2] + s[3] + s[3];
+      return /^#[0-9a-fA-F]{6}$/.test(s) ? s.toUpperCase() : porDefecto;
+    }
+
+    function hexARgb(hex){
+      const n = parseInt(normalizaHex(hex, '#000000').slice(1), 16);
+      return { r: ((n >> 16) & 255) / 255, g: ((n >> 8) & 255) / 255, b: (n & 255) / 255 };
+    }
+
+    function luminancia(hex){
+      const n = parseInt(normalizaHex(hex, '#000000').slice(1), 16);
+      const canal = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+      return 0.2126 * canal((n >> 16) & 255) + 0.7152 * canal((n >> 8) & 255) + 0.0722 * canal(n & 255);
+    }
+
+    // Relación de contraste de la WCAG: 1 (nada) a 21 (negro sobre blanco).
+    function contraste(a, b){
+      const l1 = luminancia(a), l2 = luminancia(b);
+      return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
+    }
+
+    // Color medio del diseño bajo una caja, para juzgar el contraste cuando el
+    // QR va sin fondo.
+    function colorBajo(box){
+      const x = Math.max(0, Math.round(box.x)), y = Math.max(0, Math.round(box.y));
+      const w = Math.max(1, Math.min(pdfCanvas.width - x, Math.round(box.w)));
+      const h = Math.max(1, Math.min(pdfCanvas.height - y, Math.round(box.h)));
+      if (!pdfCanvas.width || !pdfCanvas.height) return null;
+      try {
+        colorProbeCtx.clearRect(0, 0, 8, 8);
+        colorProbeCtx.drawImage(pdfCanvas, x, y, w, h, 0, 0, 8, 8);
+        const d = colorProbeCtx.getImageData(0, 0, 8, 8).data;
+        let r = 0, g = 0, b = 0;
+        for (let i = 0; i < d.length; i += 4) { r += d[i]; g += d[i+1]; b += d[i+2]; }
+        const n = d.length / 4;
+        const hex = v => Math.round(v / n).toString(16).padStart(2, '0');
+        return ('#' + hex(r) + hex(g) + hex(b)).toUpperCase();
+      } catch (err) {
+        return null;
+      }
+    }
+
+    // Un QR necesita contraste para que la cámara lo lea. Por debajo de 3:1 no
+    // hay lector que valga, y entre 3 y 4.5 ya conviene avisar.
+    function revisarContraste(){
+      const modos = getModes();
+      if (!modos.qr) { qrContraste.classList.add('hidden'); return; }
+      const tinta = normalizaHex(qrColorHex.value, COLOR_QR_POR_DEFECTO);
+      let fondo, deDonde;
+      if (qrBgOn.checked) {
+        fondo = normalizaHex(qrBgHex.value, COLOR_FONDO_POR_DEFECTO);
+        deDonde = 'el fondo elegido';
+      } else {
+        const caja = boxOnCanvas('qr');
+        fondo = caja ? colorBajo(caja) : null;
+        deDonde = 'el diseño que hay debajo';
+      }
+      if (!fondo) { qrContraste.classList.add('hidden'); return; }
+      const r = contraste(tinta, fondo);
+      if (r >= 4.5) { qrContraste.classList.add('hidden'); return; }
+      qrContraste.classList.remove('hidden');
+      qrContraste.textContent = r < 3
+        ? `Con ese color el QR casi no se distingue ${deDonde === 'el fondo elegido' ? 'del fondo elegido' : 'del diseño que hay debajo'} (contraste ${r.toFixed(1)}:1). Lo más probable es que ningún móvil lo lea: usa un color más oscuro o más claro.`
+        : `El contraste con ${deDonde} es justo (${r.toFixed(1)}:1). Se leerá, pero mejor pruébalo con el móvil antes de mandarlo a imprenta.`;
+    }
+
     function leerFormulario(){
       return {
         useQr: useQr.checked, usePhone: usePhone.checked, useWeb: useWeb.checked,
         qrLink: qrLink.value, qrMargin: qrMargin.value,
+        qrColor: normalizaHex(qrColorHex.value, COLOR_QR_POR_DEFECTO),
+        qrBg: qrBgOn.checked ? normalizaHex(qrBgHex.value, COLOR_FONDO_POR_DEFECTO) : null,
         phoneNumber: phoneNumber.value, phoneExtra: phoneExtra.value,
         webText: webText.value
       };
@@ -1057,6 +1185,9 @@
       useQr.checked = d.useQr; usePhone.checked = d.usePhone;
       useWeb.checked = !!d.useWeb;
       qrLink.value = d.qrLink; qrMargin.value = d.qrMargin;
+      ponColorQr(d.qrColor || COLOR_QR_POR_DEFECTO);
+      qrBgOn.checked = d.qrBg !== null && d.qrBg !== undefined;
+      ponColorFondo(d.qrBg || COLOR_FONDO_POR_DEFECTO);
       phoneNumber.value = d.phoneNumber; phoneExtra.value = d.phoneExtra;
       webText.value = d.webText || '';
     }
@@ -1192,23 +1323,31 @@
     // El QR de la vista previa se regenera solo en cuanto cambia el link. Si no,
     // al escribir el teléfono el recuadro blanco tapaba toda la selección y
     // parecía que el texto se metía dentro de la zona del QR.
+    // La imagen guardada vale mientras no cambien ni el texto ni los colores.
+    function claveQr(){
+      const d = leerFormulario();
+      return [d.qrLink.trim(), d.qrColor, d.qrBg ?? 'sin-fondo'].join('|');
+    }
+
     function ensureQrPreview(){
       const value = qrLink.value.trim();
       if (!getModes().qr || !value) return;
-      if (state.qrImage && state.qrPreviewFor === value) return;
-      if (state.qrPendingFor === value) return;
-      state.qrPendingFor = value;
+      const clave = claveQr();
+      if (state.qrImage && state.qrPreviewFor === clave) return;
+      if (state.qrPendingFor === clave) return;
+      state.qrPendingFor = clave;
       (async () => {
         try {
-          const img = await canvasToImage(buildQrCanvas());
-          if (qrLink.value.trim() !== value) return; // el usuario siguió escribiendo
+          const d = leerFormulario();
+          const img = await canvasToImage(buildQrCanvas(d.qrLink, d.qrColor, d.qrBg));
+          if (claveQr() !== clave) return; // el usuario siguió tocando
           state.qrImage = img;
-          state.qrPreviewFor = value;
+          state.qrPreviewFor = clave;
           redrawOverlay();
         } catch (err) {
           // Link imposible de codificar (demasiado largo): se deja sin QR.
         } finally {
-          if (state.qrPendingFor === value) state.qrPendingFor = null;
+          if (state.qrPendingFor === clave) state.qrPendingFor = null;
         }
       })();
     }
@@ -1522,9 +1661,13 @@
 
         if (pinta) {
           if (kind === 'qr') {
-            // El QR sí necesita su fondo blanco para poder escanearse.
-            overlayCtx.fillStyle = '#ffffff';
-            overlayCtx.fillRect(box.x, box.y, box.w, box.h);
+            // El fondo del QR es el que haya elegido el usuario; si lo ha
+            // quitado, el diseño se ve por debajo.
+            const fondoQr = leerFormulario().qrBg;
+            if (fondoQr) {
+              overlayCtx.fillStyle = fondoQr;
+              overlayCtx.fillRect(box.x, box.y, box.w, box.h);
+            }
             drawQrInBox(box);
           } else {
             const sel = cajasDe(state.currentPage)[kind];
@@ -1651,6 +1794,7 @@
           setDiag(cajasDe(state.currentPage)[target] ? 'Sin cambios: arrastra para dibujar un recuadro.' : 'La selección fue demasiado pequeña.');
         } else {
           setBox(target, rect);
+          if (target === 'qr') revisarContraste();
           setDiag('Recuadro ' + { qr: 'del QR', phone: 'del teléfono', web: 'de la dirección web' }[target] + ' colocado.');
           cleanupOutput();
         }
@@ -1681,9 +1825,13 @@
       return bytes;
     }
 
-    function buildQrCanvas(texto) {
+    function buildQrCanvas(texto, tinta, fondo) {
       if (typeof qrcode !== 'function') throw new Error('No cargó la librería del QR');
       const value = (texto !== undefined ? texto : qrLink.value).trim();
+      const colorTinta = normalizaHex(tinta !== undefined ? tinta : qrColorHex.value, COLOR_QR_POR_DEFECTO);
+      // `fondo` a null significa sin fondo: el PNG sale con transparencia.
+      const colorFondo = fondo === null ? null
+        : normalizaHex(fondo !== undefined ? fondo : qrBgHex.value, COLOR_FONDO_POR_DEFECTO);
       const qr = qrcode(0, 'M');
       qr.addData(value);
       qr.make();
@@ -1697,9 +1845,8 @@
       canvas.width = size;
       canvas.height = size;
       const ctx = canvas.getContext('2d');
-      ctx.fillStyle = '#FFFFFF';
-      ctx.fillRect(0, 0, size, size);
-      ctx.fillStyle = '#000000';
+      if (colorFondo) { ctx.fillStyle = colorFondo; ctx.fillRect(0, 0, size, size); }
+      ctx.fillStyle = colorTinta;
 
       for (let row = 0; row < cellCount; row++) {
         for (let col = 0; col < cellCount; col++) {
@@ -1783,10 +1930,13 @@
         if (!page) throw new Error('No se encontró la página ' + pagina + '.');
         const box = await rectEnPdf(pagina, sel);
         if (kind === 'qr') {
-          page.drawRectangle({ x: box.x, y: box.y, width: box.width, height: box.height, color: rgb(1,1,1) });
+          if (datos.qrBg) {
+            const f = hexARgb(datos.qrBg);
+            page.drawRectangle({ x: box.x, y: box.y, width: box.width, height: box.height, color: rgb(f.r, f.g, f.b) });
+          }
 
           setDiag('Generando el QR de la página ' + pagina + '...');
-          const qrCanvas = buildQrCanvas(datos.qrLink);
+          const qrCanvas = buildQrCanvas(datos.qrLink, datos.qrColor, datos.qrBg);
           const pngBytes = dataUrlToUint8Array(qrCanvas.toDataURL('image/png'));
           const qrPng = await pdfDoc.embedPng(pngBytes);
 
@@ -2088,6 +2238,11 @@
       phoneNumber.value = '';
       phoneExtra.value = '';
       qrMargin.value = '4';
+      qrBgOn.checked = true;
+      ponColorQr(COLOR_QR_POR_DEFECTO);
+      ponColorFondo(COLOR_FONDO_POR_DEFECTO);
+      qrBg.disabled = false; qrBgHex.disabled = false;
+      qrContraste.classList.add('hidden');
       useQr.checked = true;
       usePhone.checked = false;
 
@@ -2098,6 +2253,47 @@
       if (state.pdfjsDoc) await renderCurrentPage();
       setDiag('Todo limpio. Dibuja el recuadro otra vez cuando quieras.');
     });
+
+    // Los tres controles del color son la misma cosa vista de tres maneras;
+    // tocar cualquiera pone al dia a los otros dos.
+    function ponColorQr(hex){
+      const c = normalizaHex(hex, COLOR_QR_POR_DEFECTO);
+      qrColor.value = c; qrColorHex.value = c;
+      qrMuestras.querySelectorAll('.muestra').forEach(b =>
+        b.classList.toggle('is-on', b.dataset.color.toUpperCase() === c));
+    }
+
+    function ponColorFondo(hex){
+      const c = normalizaHex(hex, COLOR_FONDO_POR_DEFECTO);
+      qrBg.value = c; qrBgHex.value = c;
+    }
+
+    function alCambiarColor(){
+      exitCleanPreview();
+      state.qrImage = null;          // la imagen guardada ya no vale
+      state.qrPreviewFor = null;
+      qrBg.disabled = !qrBgOn.checked;
+      qrBgHex.disabled = !qrBgOn.checked;
+      $('qrBgOption').classList.toggle('is-on', qrBgOn.checked);
+      $('qrBgOption').querySelector('span').textContent = qrBgOn.checked ? 'Con fondo' : 'Sin fondo';
+      revisarContraste();
+      redrawOverlay();
+      updateButtons();
+    }
+
+    qrMuestras.addEventListener('click', e => {
+      const b = e.target.closest('.muestra');
+      if (!b) return;
+      ponColorQr(b.dataset.color);
+      alCambiarColor();
+    });
+    qrColor.addEventListener('input', () => { ponColorQr(qrColor.value); alCambiarColor(); });
+    qrColorHex.addEventListener('change', () => { ponColorQr(qrColorHex.value); alCambiarColor(); });
+    qrBg.addEventListener('input', () => { ponColorFondo(qrBg.value); alCambiarColor(); });
+    qrBgHex.addEventListener('change', () => { ponColorFondo(qrBgHex.value); alCambiarColor(); });
+    qrBgOn.addEventListener('change', alCambiarColor);
+    ponColorQr(COLOR_QR_POR_DEFECTO);
+    ponColorFondo(COLOR_FONDO_POR_DEFECTO);
 
     qrMargin.addEventListener('input', () => { exitCleanPreview(); redrawOverlay(); });
 
