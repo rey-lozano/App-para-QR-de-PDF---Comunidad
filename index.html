@@ -1410,6 +1410,13 @@
 
       await page.render({ canvasContext: pdfCtx, viewport }).promise;
       pageInfo.textContent = `Página ${state.currentPage} de ${state.totalPages}`;
+      // Una página girada se coloca bien, pero lo que estampamos encima sale
+      // tumbado. Mejor decirlo que dejar que se lleven la sorpresa al imprimir.
+      if (page.rotate % 360 !== 0) {
+        setStatus('Ojo: esta página del PDF viene girada ' + (page.rotate % 360) + 'º. '
+          + 'El QR y el teléfono se colocan en su sitio, pero saldrán tumbados en el archivo final. '
+          + 'Si puedes, guárdala sin giro desde el programa de diseño.', 'error');
+      }
       canvasStack.style.display = 'inline-block';
       emptyState.style.display = 'none';
       aplicarZoom();                  // la página nueva se dibuja al zoom actual
@@ -1737,6 +1744,25 @@
         : 'Vista previa del QR generada correctamente.');
     }
 
+    // La vista previa la pinta pdf.js, que dibuja el CropBox de la pagina y le
+    // aplica su rotacion. pdf-lib, en cambio, mide sobre el MediaBox y sin rotar.
+    // En un PDF de imprenta (una tarjeta con marcas de corte, por ejemplo) esas
+    // dos cajas no coinciden, y el QR salia desplazado y mas pequeno. Se
+    // convierten los puntos con el mismo viewport que dibujo la vista previa.
+    async function rectEnPdf(pagina, sel){
+      const p = await state.pdfjsDoc.getPage(pagina);
+      const base = p.getViewport({ scale: 1 });
+      const vp = p.getViewport({ scale: sel.cw / base.width });
+      const [x1, y1] = vp.convertToPdfPoint(sel.x, sel.y);
+      const [x2, y2] = vp.convertToPdfPoint(sel.x + sel.w, sel.y + sel.h);
+      return {
+        x: Math.min(x1, x2),
+        y: Math.min(y1, y2),
+        width: Math.abs(x2 - x1),
+        height: Math.abs(y2 - y1),
+      };
+    }
+
     async function buildOutputPdfBlob(){
       if (typeof PDFLib === 'undefined') throw new Error('No cargó PDFLib');
       setDiag('Abriendo PDF para edición...');
@@ -1755,13 +1781,7 @@
         const datos = datosDe(pagina);
         const page = pdfDoc.getPages()[pagina - 1];
         if (!page) throw new Error('No se encontró la página ' + pagina + '.');
-        const pdfWidth = page.getWidth(), pdfHeight = page.getHeight();
-        const box = {
-          x: (sel.x / sel.cw) * pdfWidth,
-          y: pdfHeight - ((sel.y + sel.h) / sel.ch) * pdfHeight,
-          width: (sel.w / sel.cw) * pdfWidth,
-          height: (sel.h / sel.ch) * pdfHeight
-        };
+        const box = await rectEnPdf(pagina, sel);
         if (kind === 'qr') {
           page.drawRectangle({ x: box.x, y: box.y, width: box.width, height: box.height, color: rgb(1,1,1) });
 
